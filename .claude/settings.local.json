@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $comp ===\")",
+      "Bash(grep:*)",
+      "Bash(done)",
+      "Bash(while read comp)",
+      "Bash(do echo -n \"$comp: \")",
+      "Bash(git checkout:*)",
+      "mcp__ide__getDiagnostics"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
