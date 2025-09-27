@@ -500,8 +500,8 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               </div>
             </div>
 
-            {/* 하단: 업로드 영역 + 결과 */}
-            <div className="space-y-6">
+            {/* 업로드 영역 */}
+            <div>
               {/* 파일 업로드 영역 */}
               <div
                 className={`border-2 border-dashed rounded-lg p-10 text-center transition-all duration-200 bg-white min-h-[18rem] flex items-center justify-center ${
@@ -513,7 +513,42 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                {isUploading ? (
+                {formData.uploadedFile.fileName ? (
+                  // 업로드 완료 후 결과 표시
+                  <div className="space-y-4 w-full max-w-lg">
+                    <div className="flex items-center justify-center space-x-3 mb-4">
+                      <FileText className="h-8 w-8 text-green-600" />
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-green-900">{formData.uploadedFile.fileName}</p>
+                        <p className="text-sm text-green-700">파일이 성공적으로 업로드되었습니다</p>
+                      </div>
+                    </div>
+
+                    {/* 파일 내용 미리보기 */}
+                    <div className="p-4 bg-gray-50 rounded-lg border">
+                      <p className="text-sm font-medium text-gray-700 mb-2">파일 내용 미리보기</p>
+                      <div className="text-xs text-gray-600 bg-white p-3 rounded max-h-32 overflow-y-auto font-mono border">
+                        {formData.uploadedFile.fileContent.substring(0, 400)}
+                        {formData.uploadedFile.fileContent.length > 400 && '...'}
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-3 justify-center">
+                      <button
+                        onClick={() => {
+                          updateFormData({
+                            uploadedFile: { file: null, fileName: '', fileContent: '' }
+                          });
+                          setUploadProgress(0);
+                          setIsUploading(false);
+                        }}
+                        className="px-4 py-2 text-sm text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                      >
+                        다른 파일 선택
+                      </button>
+                    </div>
+                  </div>
+                ) : isUploading ? (
                   // 업로드 진행 중 UI
                   <div className="space-y-6 w-full max-w-md">
                     <div className="flex flex-col items-center space-y-4">
@@ -563,42 +598,6 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                   </>
                 )}
               </div>
-
-              {/* 업로드된 파일 정보 */}
-              {formData.uploadedFile.fileName && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <FileText className="h-6 w-6 text-green-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-green-900">{formData.uploadedFile.fileName}</p>
-                      <p className="text-sm text-green-700">파일이 성공적으로 업로드되었습니다</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        updateFormData({
-                          uploadedFile: { file: null, fileName: '', fileContent: '' }
-                        });
-                        setUploadProgress(0);
-                        setIsUploading(false);
-                      }}
-                      className="px-3 py-1 text-sm text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                  
-                  {/* 파일 내용 미리보기 */}
-                  <div className="p-3 bg-white rounded border">
-                    
-                    <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded max-h-24 overflow-y-auto font-mono">
-                      {formData.uploadedFile.fileContent.substring(0, 300)}
-                      {formData.uploadedFile.fileContent.length > 300 && '...'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              
             </div>
           </div>
         );

@@ -13,6 +13,7 @@ interface CoverLetterDraftProps {
 
 export function CoverLetterDraft({ coverLetter, onNavigate, onUpdate }: CoverLetterDraftProps) {
   const [selectedParagraphId, setSelectedParagraphId] = useState<string | null>(null);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
   // 임시 더미 데이터 (서버에서 받아올 데이터)
   const dummyParagraphs: CoverLetterParagraph[] = [
@@ -55,6 +56,7 @@ export function CoverLetterDraft({ coverLetter, onNavigate, onUpdate }: CoverLet
 
   const handleParagraphClick = (paragraphId: string) => {
     setSelectedParagraphId(paragraphId);
+    setIsAnalysisOpen(true);
   };
 
   const handleDownload = () => {
@@ -103,11 +105,15 @@ export function CoverLetterDraft({ coverLetter, onNavigate, onUpdate }: CoverLet
       </header>
 
       {/* Main Content */}
-      <main className="px-6 py-8">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-5 gap-8">
-          {/* Left: Cover Letter Document */}
-          <div className="lg:col-span-3">
-            <div className="bg-white border border-gray-300 shadow-sm min-h-[600px]">
+      <main className="px-6 py-8 overflow-hidden">
+        <div className="max-w-6xl mx-auto relative">
+          {/* Cover Letter Document */}
+          <div className={`w-3/5 mx-auto transition-all duration-700 ease-in-out ${
+            isAnalysisOpen
+              ? 'transform -translate-x-1/3'
+              : 'transform translate-x-0'
+          }`}>
+            <div className="bg-white border border-gray-300 shadow-sm min-h-[400px] rounded-lg">
               {/* Document Header */}
               <div className="border-b border-gray-200 px-8 py-4">
                 <div className="text-center">
@@ -120,23 +126,18 @@ export function CoverLetterDraft({ coverLetter, onNavigate, onUpdate }: CoverLet
 
               {/* Document Body */}
               <div className="p-8">
-                <div className="mb-4">
-                  <span className="text-xs text-gray-400 italic">💡 문단을 클릭하면 작성 의도를 확인할 수 있어요</span>
-                </div>
-
                 <div className="leading-relaxed text-gray-800 text-base">
                   {paragraphs.map((paragraph, index) => (
-                    <span key={paragraph.id}>
-                      <span
-                        onClick={() => handleParagraphClick(paragraph.id)}
-                        className={`cursor-pointer ${
-                          selectedParagraphId === paragraph.id
-                            ? 'bg-blue-200/70'
-                            : 'hover:bg-yellow-200/50'
-                        }`}
-                      >
-                        {paragraph.text}
-                      </span>
+                    <span
+                      key={paragraph.id}
+                      onClick={() => handleParagraphClick(paragraph.id)}
+                      className={`cursor-pointer transition-all duration-200 ${
+                        selectedParagraphId === paragraph.id
+                          ? 'bg-blue-200/70 font-bold text-lg'
+                          : 'hover:bg-yellow-200/50'
+                      }`}
+                    >
+                      <span>{paragraph.text}</span>
                       {index < paragraphs.length - 1 && ' '}
                     </span>
                   ))}
@@ -149,45 +150,53 @@ export function CoverLetterDraft({ coverLetter, onNavigate, onUpdate }: CoverLet
             </div>
           </div>
 
-          {/* Right: Writing Notes */}
-          <div className="lg:col-span-2">
-            <div className="bg-amber-50 border border-amber-200 h-[600px] flex flex-col">
-              <div className="border-b border-amber-200 px-6 py-4">
-                <h3 className="text-lg font-medium text-amber-900">📝 작성 노트</h3>
-                <p className="text-sm text-amber-700 mt-1">
-                  {selectedParagraphId ? '선택하신 문단에 대한 작성 의도입니다' : '문단을 클릭해보세요'}
-                </p>
+          {/* Right: Content Analysis Panel */}
+          <div className={`absolute top-0 right-0 w-2/5 h-[400px] transition-all duration-700 ease-in-out ${
+            isAnalysisOpen
+              ? 'transform translate-x-0 opacity-100'
+              : 'transform translate-x-full opacity-0'
+          }`}>
+            <Card className="h-full flex flex-col ml-4">
+              {/* Close Button */}
+              <div className="flex justify-end p-2">
+                <button
+                  onClick={() => setIsAnalysisOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
 
-              <div className="flex-1 p-6">
-                {selectedParagraph ? (
-                  <div className="space-y-4">
-                    <div className="bg-white/70 border border-amber-300 rounded-lg p-4">
-                      <div className="text-xs text-amber-600 mb-1 font-medium">선택한 문단</div>
-                      <p className="text-sm text-gray-800 leading-relaxed italic">
-                        "{selectedParagraph.text}"
-                      </p>
-                    </div>
+              {selectedParagraph ? (
+                <>
+                  <div className="border-b border-gray-200 px-6 py-4">
+                    <p className="text-lg font-bold text-gray-900 leading-relaxed italic">
+                      "{selectedParagraph.text}"
+                    </p>
+                  </div>
 
-                    <div className="bg-white/50 rounded-lg p-4">
-                      <div className="text-sm text-amber-800 mb-2 font-medium">💭 작성 의도</div>
-                      <p className="text-sm text-gray-700 leading-relaxed">
+                  <div className="flex-1 p-6">
+                    <div>
+                      <div className="text-sm text-gray-700 mb-2 font-medium">구성 요소</div>
+                      <p className="text-sm text-gray-600 leading-relaxed">
                         {selectedParagraph.explanation}
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <div className="text-6xl mb-4">📄</div>
-                    <h4 className="font-medium text-amber-900 mb-2">궁금한 문단을 클릭해보세요</h4>
-                    <p className="text-sm text-amber-700 max-w-xs leading-relaxed">
-                      각 문단이 왜 그렇게 작성되었는지,<br />
-                      어떤 의도가 담겨있는지 알려드릴게요.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                  <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                  <h4 className="font-medium text-gray-700 mb-2">문단을 선택해주세요</h4>
+                  <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+                    문단을 클릭하면<br />
+                    상세 분석을 확인할 수 있습니다.
+                  </p>
+                </div>
+              )}
+            </Card>
           </div>
         </div>
       </main>

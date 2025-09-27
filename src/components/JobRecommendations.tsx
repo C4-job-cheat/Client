@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { ArrowLeft, Bookmark, Clock, Info, Brain, Target, Zap, BarChart } from 'lucide-react';
+import { ArrowLeft, Bookmark, Clock, Info, Brain, Target, Zap, BarChart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { PersonaCardHeader } from './PersonaCardHeader';
 import type { Page, Persona, Job } from '../types';
@@ -205,40 +205,155 @@ function CapabilityRadarChart({ onCapabilityClick }: { onCapabilityClick: (index
   );
 }
 
-// AI 종합 분석 컴포넌트
+// AI 종합 분석 캐러셀 컴포넌트
 function AIAnalysisSummary() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const analysisData = [
-    { title: '직무 전문성', score: 88, color: 'text-blue-600', summary: '컴퓨터공학 전공과 정보처리기사 자격증으로 기본기는 탄탄하나 실무 경험 보완 필요' },
-    { title: '성장 잠재력', score: 90, color: 'text-green-600', summary: '기술 습득 의욕과 자기계발 의지가 뛰어나며 온라인 강의를 통한 지속적 성장 중' },
-    { title: '문제 해결력', score: 85, color: 'text-purple-600', summary: '논리적 사고력이 우수하고 알고리즘 문제 해결 경험이 풍부하여 체계적 접근 가능' },
-    { title: '협업 능력', score: 78, color: 'text-orange-600', summary: '기본적인 팀워크는 갖추었으나 다양한 직무와의 협업 경험과 소통 스킬 향상 필요' },
-    { title: '적응력', score: 92, color: 'text-teal-600', summary: '변화하는 환경에 대한 적응력이 뛰어나고 새로운 기술과 트렌드에 대한 관심 높음' }
+    {
+      title: '직무 전문성',
+      score: 88,
+      color: 'text-blue-600',
+      borderColor: 'border-blue-600',
+      iconColor: 'text-blue-600',
+      icon: Target,
+      summary: '컴퓨터공학 전공과 정보처리기사 자격증으로 기본기는 탄탄하나 실무 경험 보완 필요',
+      details: [
+        '✓ 컴퓨터공학 전공으로 체계적인 이론 지식 보유',
+        '✓ 정보처리기사 자격증으로 검증된 기술 역량',
+        '△ 실무 프로젝트 경험 부족으로 현장 적응력 보완 필요'
+      ]
+    },
+    {
+      title: '성장 잠재력',
+      score: 90,
+      color: 'text-green-600',
+      borderColor: 'border-green-600',
+      iconColor: 'text-green-600',
+      icon: Zap,
+      summary: '기술 습득 의욕과 자기계발 의지가 뛰어나며 온라인 강의를 통한 지속적 성장 중',
+      details: [
+        '✓ 온라인 강의 수강으로 지속적인 자기계발 실천',
+        '✓ 새로운 기술에 대한 높은 관심도와 학습 의욕',
+        '✓ 명확한 커리어 목표 설정 및 계획 수립'
+      ]
+    },
+    {
+      title: '문제 해결력',
+      score: 85,
+      color: 'text-purple-600',
+      borderColor: 'border-purple-600',
+      iconColor: 'text-purple-600',
+      icon: Brain,
+      summary: '논리적 사고력이 우수하고 알고리즘 문제 해결 경험이 풍부하여 체계적 접근 가능',
+      details: [
+        '✓ 알고리즘 문제 해결을 통한 논리적 사고력 검증',
+        '✓ 복잡한 문제를 단계별로 분석하는 체계적 접근',
+        '✓ 다양한 솔루션을 고려하는 창의적 문제 해결'
+      ]
+    },
+    {
+      title: '협업 능력',
+      score: 78,
+      color: 'text-orange-600',
+      borderColor: 'border-orange-600',
+      iconColor: 'text-orange-600',
+      icon: Target,
+      summary: '기본적인 팀워크는 갖추었으나 다양한 직무와의 협업 경험과 소통 스킬 향상 필요',
+      details: [
+        '✓ 기본적인 팀워크와 의사소통 능력 보유',
+        '✓ 타인의 의견을 존중하고 수용하는 자세',
+        '△ 다양한 직무와의 크로스 팀워크 경험 부족'
+      ]
+    },
+    {
+      title: '적응력',
+      score: 92,
+      color: 'text-teal-600',
+      borderColor: 'border-teal-600',
+      iconColor: 'text-teal-600',
+      icon: Zap,
+      summary: '변화하는 환경에 대한 적응력이 뛰어나고 새로운 기술과 트렌드에 대한 관심 높음',
+      details: [
+        '✓ 빠르게 변화하는 기술 트렌드에 대한 높은 관심',
+        '✓ 새로운 환경과 도구에 대한 빠른 적응력',
+        '✓ 변화를 기회로 인식하는 긍정적 마인드셋'
+      ]
+    }
   ];
 
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  const currentItem = analysisData[currentIndex];
+
   return (
-    <div className="h-full overflow-auto">
-      {/* 헤더 */}
-      <div className="mb-2">
-        <h3 className="text-sm font-semibold text-gray-900">AI 분석 요약</h3>
-        <p className="text-xs text-gray-500">역량별 세부 분석</p>
+    <div className="h-full flex">
+      {/* 왼쪽: 캐러셀 컨텐츠 */}
+      <div className="flex-1 flex flex-col mr-4">
+        {/* 헤더 */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">AI 분석 요약</h3>
+          <p className="text-sm text-gray-500">역량별 세부 분석</p>
+        </div>
+
+        {/* 캐러셀 컨텐츠 */}
+        <div className="flex-1 overflow-hidden">
+          <div
+            className={`h-full p-4 rounded-lg border bg-gradient-to-br from-white to-gray-50 ${currentItem.borderColor} transition-all duration-300`}
+          >
+            {/* 제목과 점수 */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <h4 className={`text-lg font-semibold ${currentItem.color}`}>
+                  {currentItem.title}
+                </h4>
+              </div>
+              <div className={`text-2xl font-bold ${currentItem.color}`}>
+                {currentItem.score}
+              </div>
+            </div>
+
+            {/* 요약 */}
+            <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+              {currentItem.summary}
+            </p>
+
+            {/* 상세 분석 */}
+            <div className="space-y-2">
+              {currentItem.details.map((detail, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <span className="text-xs text-gray-600 leading-relaxed">
+                    {detail}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* 각 역량별 요약 */}
-      <div className="space-y-1.5">
+      {/* 오른쪽: 역량별 버튼 목록 */}
+      <div className="w-40 flex flex-col space-y-2">
         {analysisData.map((item, index) => (
-          <div key={index} className="border-l-3 border-gray-200 pl-2 py-0.5">
-            <div className="flex items-center justify-between mb-0.5">
-              <h4 className={`text-xs font-semibold ${item.color}`}>
-                {item.title}
-              </h4>
-              <span className={`text-xs font-medium ${item.color}`}>
-                {item.score}
-              </span>
+          <Button
+            key={index}
+            variant="outline"
+            size="sm"
+            onClick={() => goToSlide(index)}
+            className={`w-full justify-start text-left h-auto py-2 px-2.5 bg-gradient-to-r from-white to-gray-50 ${
+              index === currentIndex
+                ? `${item.borderColor} ${item.color} border`
+                : `border-gray-200 text-gray-700 hover:${item.borderColor} hover:${item.color} border`
+            }`}
+          >
+            <div className="flex flex-col items-start w-full">
+              <span className="text-xs font-medium">{item.title}</span>
+              <span className="text-xs opacity-75">{item.score}점</span>
             </div>
-            <p className="text-xs text-gray-600 leading-tight">
-              {item.summary}
-            </p>
-          </div>
+          </Button>
         ))}
       </div>
     </div>

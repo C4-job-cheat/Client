@@ -3,19 +3,20 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { 
-  ArrowLeft, 
-  Trophy, 
+import {
+  ArrowLeft,
+  Trophy,
   Target,
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+  Clock,
+  CheckCircle,
+  AlertCircle,
   Lightbulb,
   RotateCcw,
   Home,
-  Eye
+  Eye,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import { QuestionDetailModal } from './QuestionDetailModal';
 import type { Page, InterviewSession } from '../types';
 
 interface InterviewResultsProps {
@@ -25,16 +26,27 @@ interface InterviewResultsProps {
 
 export function InterviewResults({ session, onNavigate }: InterviewResultsProps) {
   const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showDetailView, setShowDetailView] = useState(false);
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
   const handleQuestionClick = (question: any) => {
     setSelectedQuestion(question);
-    setIsModalOpen(true);
+    setShowDetailView(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
+  const handleBackToList = () => {
+    setShowDetailView(false);
     setSelectedQuestion(null);
+  };
+
+  const toggleQuestionExpansion = (questionId: string) => {
+    const newExpanded = new Set(expandedQuestions);
+    if (newExpanded.has(questionId)) {
+      newExpanded.delete(questionId);
+    } else {
+      newExpanded.add(questionId);
+    }
+    setExpandedQuestions(newExpanded);
   };
 
   if (!session) {
@@ -90,6 +102,143 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
     'job-knowledge': { label: '직무 지식', color: 'bg-green-100 text-green-700' },
     'ai-recommended': { label: 'AI 추천', color: 'bg-purple-100 text-purple-700' }
   };
+
+  // 상세 보기 페이지 렌더링
+  if (showDetailView && selectedQuestion) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-2">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToList}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>결과 목록으로</span>
+            </Button>
+            <h1 className="font-semibold">질문 상세 결과</h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('home')}
+              className="flex items-center space-x-2"
+            >
+              <Home className="h-4 w-4" />
+              <span>홈으로</span>
+            </Button>
+          </div>
+        </header>
+
+        {/* Detail Content */}
+        <main className="px-6 py-8">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Question Info */}
+            <Card className="p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <Badge className={questionTypes[selectedQuestion.type]?.color || 'bg-gray-100 text-gray-700'}>
+                  {questionTypes[selectedQuestion.type]?.label || '일반'}
+                </Badge>
+                <span className="text-sm text-gray-500">
+                  소요 시간: {formatTime(selectedQuestion.timeSpent)}
+                </span>
+              </div>
+              <h2 className="text-xl font-semibold mb-4">{selectedQuestion.question}</h2>
+            </Card>
+
+            {/* Answer */}
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">내 답변</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                  {selectedQuestion.answer || '답변이 입력되지 않았습니다.'}
+                </p>
+              </div>
+              <div className="mt-4 text-sm text-gray-500">
+                답변 길이: {selectedQuestion.answer?.length || 0}자
+              </div>
+            </Card>
+
+            {/* Analysis */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 text-green-700">잘한 점</h3>
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-gray-700">질문의 핵심을 이해하고 답변했습니다.</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-gray-700">구체적인 경험을 들어 설명했습니다.</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 text-orange-700">개선할 점</h3>
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-gray-700">더 구체적인 사례를 들어 설명해보세요.</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-gray-700">결론 부분을 더 명확하게 정리해보세요.</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Suggestions */}
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4 text-blue-700">개선 제안</h3>
+              <div className="space-y-3">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">모범 답변 예시</h4>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    "저는 [구체적 상황]에서 [구체적 행동]을 통해 [구체적 결과]를 달성한 경험이 있습니다.
+                    이 경험을 통해 [학습한 점]을 배웠고, 이는 귀사에서 [연결점]에 도움이 될 것이라 생각합니다."
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-gray-700">STAR 기법(상황-과제-행동-결과)을 활용해보세요.</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-gray-700">답변 시간을 45초 내외로 조절해보세요.</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center space-x-4">
+              <Button
+                onClick={handleBackToList}
+                variant="outline"
+                size="lg"
+                className="px-8"
+              >
+                목록으로 돌아가기
+              </Button>
+              <Button
+                onClick={() => onNavigate('interview-practice')}
+                size="lg"
+                className="px-8 bg-blue-600 hover:bg-blue-700"
+              >
+                다시 연습하기
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -233,51 +382,124 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
           {/* Question Details */}
           <Card className="p-6">
             <h3 className="font-semibold mb-6">질문별 상세 결과</h3>
-            <div className="space-y-6">
-              {session.questions.map((question, index) => (
-                <div key={question.id}>
-                  <Card 
-                    className="p-4 cursor-pointer hover:shadow-md transition-all border-2 border-transparent hover:border-blue-200"
-                    onClick={() => handleQuestionClick(question)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-sm font-medium text-gray-500">
-                            Q{index + 1}.
-                          </span>
-                          <Badge className={questionTypes[question.type]?.color || 'bg-gray-100 text-gray-700'}>
-                            {questionTypes[question.type]?.label || '일반'}
-                          </Badge>
+            <div className="space-y-4">
+              {session.questions.map((question, index) => {
+                const isExpanded = expandedQuestions.has(question.id);
+                return (
+                  <div key={question.id}>
+                    <Card className="border-2 border-transparent hover:border-blue-200 transition-all">
+                      {/* Question Header - Always Visible */}
+                      <div
+                        className="p-4 cursor-pointer"
+                        onClick={() => toggleQuestionExpansion(question.id)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-sm font-medium text-gray-500">
+                                Q{index + 1}.
+                              </span>
+                              <Badge className={questionTypes[question.type]?.color || 'bg-gray-100 text-gray-700'}>
+                                {questionTypes[question.type]?.label || '일반'}
+                              </Badge>
+                            </div>
+                            <p className="font-medium mb-2">{question.question}</p>
+                            {!isExpanded && (
+                              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg line-clamp-2">
+                                {question.answer || '답변이 입력되지 않았습니다.'}
+                              </p>
+                            )}
+                          </div>
+                          <div className="ml-4 flex items-center space-x-2">
+                            <div className="text-right">
+                              <div className="text-sm text-gray-500">소요 시간</div>
+                              <div className="font-medium">{formatTime(question.timeSpent)}</div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="flex items-center space-x-1"
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
-                        <p className="font-medium mb-2">{question.question}</p>
-                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg line-clamp-2">
-                          {question.answer || '답변이 입력되지 않았습니다.'}
-                        </p>
                       </div>
-                      <div className="ml-4 flex flex-col items-end space-y-2">
-                        <div className="text-right">
-                          <div className="text-sm text-gray-500">소요 시간</div>
-                          <div className="font-medium">{formatTime(question.timeSpent)}</div>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="px-4 pb-4 border-t border-gray-100">
+                          <div className="pt-4 space-y-4">
+                            {/* Full Answer */}
+                            <div>
+                              <h4 className="font-medium mb-2">내 답변</h4>
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                  {question.answer || '답변이 입력되지 않았습니다.'}
+                                </p>
+                              </div>
+                              <div className="mt-2 text-sm text-gray-500">
+                                답변 길이: {question.answer?.length || 0}자
+                              </div>
+                            </div>
+
+                            {/* Quick Analysis */}
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div className="bg-green-50 p-4 rounded-lg">
+                                <h5 className="font-medium text-green-700 mb-2">잘한 점</h5>
+                                <div className="space-y-1">
+                                  <div className="flex items-start space-x-2">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    <p className="text-sm text-gray-700">질문의 핵심을 이해했습니다.</p>
+                                  </div>
+                                  <div className="flex items-start space-x-2">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    <p className="text-sm text-gray-700">구체적인 경험을 제시했습니다.</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-orange-50 p-4 rounded-lg">
+                                <h5 className="font-medium text-orange-700 mb-2">개선할 점</h5>
+                                <div className="space-y-1">
+                                  <div className="flex items-start space-x-2">
+                                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    <p className="text-sm text-gray-700">더 구체적인 사례가 필요합니다.</p>
+                                  </div>
+                                  <div className="flex items-start space-x-2">
+                                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    <p className="text-sm text-gray-700">결론을 명확하게 정리해보세요.</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Button */}
+                            <div className="flex justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuestionClick(question);
+                                }}
+                                className="flex items-center space-x-1"
+                              >
+                                <Eye className="h-3 w-3" />
+                                <span>상세 분석 보기</span>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center space-x-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuestionClick(question);
-                          }}
-                        >
-                          <Eye className="h-3 w-3" />
-                          <span>상세보기</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                  {index < session.questions.length - 1 && <div className="h-4" />}
-                </div>
-              ))}
+                      )}
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 
@@ -305,14 +527,6 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
         </div>
       </main>
 
-      {/* Question Detail Modal */}
-      {selectedQuestion && (
-        <QuestionDetailModal
-          question={selectedQuestion}
-          isOpen={isModalOpen}
-          onClose={closeModal}
-        />
-      )}
     </div>
   );
 }

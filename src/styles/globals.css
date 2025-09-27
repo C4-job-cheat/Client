@@ -265,3 +265,13 @@ html {
 .hover\:scrollbar-thumb-blue-500:hover::-webkit-scrollbar-thumb {
   background-color: rgb(59 130 246);
 }
+
+/* 캐러셀 진행 바 애니메이션 */
+@keyframes progress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}

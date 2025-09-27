@@ -23,6 +23,8 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const [recordings, setRecordings] = useState<Blob[]>([]);
   const [totalElapsedTime, setTotalElapsedTime] = useState(0);
   const [isQuestionPlaying, setIsQuestionPlaying] = useState(false);
+  const [isPlayingRecording, setIsPlayingRecording] = useState(false);
+  const [recordingUrls, setRecordingUrls] = useState<string[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -31,6 +33,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   useEffect(() => {
     if (!session) return;
     setRecordings(new Array(session.questions.length).fill(null));
+    setRecordingUrls(new Array(session.questions.length).fill(''));
 
     // 첫 번째 질문 자동 재생과 동시에 녹음 시작
     playQuestionAndStartRecording(session.questions[0].question);
@@ -38,8 +41,11 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
 
   const playQuestionAndStartRecording = async (questionText: string) => {
     setIsQuestionPlaying(true);
+    setRecordingState('idle');
+    setIsTimerActive(false);
+    setTimeLeft(60);
 
-    // 질문 재생과 동시에 녹음 시작
+    // 질문 재생 후 녹음 시작
     const playPromise = new Promise<void>((resolve) => {
       const utterance = new SpeechSynthesisUtterance(questionText);
       utterance.lang = 'ko-KR';
@@ -56,8 +62,11 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
       speechSynthesis.speak(utterance);
     });
 
-    // 질문 재생과 동시에 녹음 시작
-    await startRecording();
+    // 질문이 끝난 후 1초 대기 후 녹음 시작
+    await playPromise;
+    setTimeout(() => {
+      startRecording();
+    }, 1000);
   };
 
   useEffect(() => {
@@ -118,7 +127,17 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recordingStreamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream);
+      // MP3 지원 여부 확인 후 MediaRecorder 생성
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/mp3')) {
+        mimeType = 'audio/mp3';
+      } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus';
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
       const chunks: BlobPart[] = [];
@@ -130,10 +149,40 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         const updatedRecordings = [...recordings];
         updatedRecordings[currentQuestionIndex] = blob;
         setRecordings(updatedRecordings);
+
+        // 녹음 파일을 다운로드 가능한 URL로 변환하여 저장
+        const audioUrl = URL.createObjectURL(blob);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+        // 파일 확장자를 MIME 타입에 따라 결정
+        let fileExtension = 'webm';
+        if (mimeType.includes('mp3')) {
+          fileExtension = 'mp3';
+        } else if (mimeType.includes('ogg')) {
+          fileExtension = 'ogg';
+        }
+
+        const fileName = `voice-interview-q${currentQuestionIndex + 1}-${timestamp}.${fileExtension}`;
+
+        // URL을 배열에 저장하여 재생 가능하게 함
+        const updatedUrls = [...recordingUrls];
+        updatedUrls[currentQuestionIndex] = audioUrl;
+        setRecordingUrls(updatedUrls);
+
+        // 자동으로 파일 다운로드
+        const downloadLink = document.createElement('a');
+        downloadLink.href = audioUrl;
+        downloadLink.download = fileName;
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        console.log(`녹음 파일이 저장되었습니다: ${fileName}`);
 
         // 스트림 정리
         if (recordingStreamRef.current) {
@@ -175,6 +224,27 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
       setRecordingState('recording');
       setIsTimerActive(true);
     }
+  };
+
+  const playRecording = (recordingUrl: string) => {
+    if (!recordingUrl) return;
+
+    setIsPlayingRecording(true);
+    const audio = new Audio(recordingUrl);
+
+    audio.onended = () => {
+      setIsPlayingRecording(false);
+    };
+
+    audio.onerror = () => {
+      setIsPlayingRecording(false);
+      console.error('녹음 재생 중 오류가 발생했습니다.');
+    };
+
+    audio.play().catch(error => {
+      setIsPlayingRecording(false);
+      console.error('녹음 재생 실패:', error);
+    });
   };
 
   if (!session) {
@@ -377,15 +447,66 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
                     <label className="text-sm font-medium text-gray-700">
                       음성으로 답변해주세요
                     </label>
-                    <div className="min-h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center p-6">
+                    <div className={`min-h-32 rounded-lg border-2 border-dashed flex items-center justify-center p-6 transition-all duration-500 ${
+                      recordingState === 'recording'
+                        ? 'bg-red-50 border-red-300 shadow-lg shadow-red-100'
+                        : 'bg-gray-50 border-gray-300'
+                    }`}>
                       <div className="text-center space-y-2">
-                        <Mic className="h-8 w-8 text-gray-400 mx-auto" />
-                        <p className="text-sm text-gray-600">
-                          질문을 듣고 음성으로 답변하세요
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          질문이 끝나면 자동으로 녹음이 시작됩니다
-                        </p>
+                        {recordingState === 'recording' ? (
+                          <>
+                            <div className="relative">
+                              <Mic className="h-10 w-10 text-red-500 mx-auto" />
+                              <div className="absolute -inset-1 bg-red-500 rounded-full opacity-25 animate-ping"></div>
+                            </div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                              </div>
+                              <span className="text-red-600 font-semibold text-lg tracking-wider">ON AIR</span>
+                            </div>
+                            <p className="text-sm text-red-600 font-medium">
+                              지금 녹음 중입니다
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-8 w-8 text-gray-400 mx-auto" />
+                            <p className="text-sm text-gray-600">
+                              질문을 듣고 음성으로 답변하세요
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              질문이 끝나면 자동으로 녹음이 시작됩니다
+                            </p>
+                          </>
+                        )}
+
+                        {/* 녹음 완료 후 재생 버튼 */}
+                        {recordingState === 'completed' && recordingUrls[currentQuestionIndex] && (
+                          <div className="mt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => playRecording(recordingUrls[currentQuestionIndex])}
+                              disabled={isPlayingRecording}
+                              className="flex items-center space-x-2"
+                            >
+                              {isPlayingRecording ? (
+                                <>
+                                  <Volume2 className="h-4 w-4 animate-pulse" />
+                                  <span>재생 중...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="h-4 w-4" />
+                                  <span>내 답변 듣기</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

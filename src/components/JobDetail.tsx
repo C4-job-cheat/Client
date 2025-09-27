@@ -217,17 +217,17 @@ ${job.company}의 혁신적인 핀테크 서비스 철학과 사용자 경험을
                         fill="#3B82F6"
                         fillOpacity={0.2}
                         strokeWidth={3}
-                        dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                        dot={{ fill: '#3B82F6', strokeWidth: 2, r: 2 }}
                       />
                       <Radar
                         name="job"
                         dataKey="job"
-                        stroke="#9ca3af"
-                        fill="#9ca3af"
-                        fillOpacity={0.06}
-                        strokeWidth={1.5}
+                        stroke="#f97316"
+                        fill="#f97316"
+                        fillOpacity={0.15}
+                        strokeWidth={2.5}
                         strokeDasharray="6 4"
-                        dot={{ fill: '#9ca3af', strokeWidth: 1, r: 2.5 }}
+                        dot={{ fill: '#f97316', strokeWidth: 2, r: 2 }}
                       />
                     </RadarChart>
                   </ResponsiveContainer>
@@ -239,7 +239,7 @@ ${job.company}의 혁신적인 핀테크 서비스 철학과 사용자 경험을
                     <span className="text-xs text-gray-700">내 역량</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-gray-400 border-dashed rounded-full"></div>
+                    <div className="w-4 h-4 border-2 border-orange-500 border-dashed rounded-full"></div>
                     <span className="text-xs text-gray-700">공고 요구사항</span>
                   </div>
                 </div>
