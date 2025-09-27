@@ -40,16 +40,17 @@ export function CoverLetterHub({ currentPersona, coverLetters, onNavigate, onCov
       currentPersona={currentPersona}
       onNavigate={onNavigate}
       feature={featureConfig}
+      hasRecords={availableCoverLetters.length > 0}
     >
       {/* 기존 자기소개서 목록 */}
       {availableCoverLetters.length > 0 ? (
-        <div id="my-essays" className="space-y-4 scroll-mt-8">
+        <div id="my-essays" className="space-y-4 scroll-mt-8 md:min-h-[600px]">
           <h2 className="text-xl font-semibold">작성된 자기소개서</h2>
-          <div className="grid gap-4">
+          <div className="grid gap-4 max-w-2xl mx-auto">
             {availableCoverLetters.map((coverLetter) => (
               <Card
                 key={coverLetter.id}
-                className="p-6 cursor-pointer hover:shadow-md transition-shadow"
+                className="p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border border-black shadow-md"
                 onClick={() => handleCoverLetterSelect(coverLetter)}
               >
                 <div className="flex items-center justify-between">
@@ -100,20 +101,15 @@ export function CoverLetterHub({ currentPersona, coverLetters, onNavigate, onCov
           </div>
         </div>
       ) : (
-        <Card className="p-8 text-center bg-gray-50 border-dashed">
+        <Card className="p-8 text-center bg-gray-50 border border-dashed border-black shadow-md md:h-[332px] md:flex md:flex-col md:justify-center md:overflow-hidden">
           <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="font-semibold mb-2">아직 자기소개서 기록이 없어요</h3>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600">
             첫 번째 자기소개서를 작성해보세요
           </p>
-          <Button
-            onClick={() => currentPersona ? onNavigate('cover-letter') : onNavigate('persona-waiting', 'cover-letter')}
-            className="bg-black hover:bg-gray-800"
-          >
-            자기소개서 작성하기
-          </Button>
         </Card>
       )}
+
     </FeatureHub>
   );
 }

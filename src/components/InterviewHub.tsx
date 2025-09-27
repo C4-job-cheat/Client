@@ -98,11 +98,11 @@ export function InterviewHub({
       currentPersona={currentPersona}
       onNavigate={onNavigate}
       feature={featureConfig}
+      hasRecords={currentPersona ? getSessionsByPersona(currentPersona.id).length > 0 : false}
     >
       {/* 현재 페르소나의 면접 기록만 표시 */}
       {currentPersona && (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold">{currentPersona.jobCategory} 페르소나 면접 기록</h2>
           
           {(() => {
             const stats = getPersonaStats(currentPersona.id);
@@ -142,18 +142,12 @@ export function InterviewHub({
                     </Card>
                   </div>
                 ) : (
-                  <Card className="p-8 text-center bg-gray-50 border-dashed">
+                  <Card className="p-8 text-center bg-gray-50 border border-dashed border-black shadow-md md:h-[332px] md:flex md:flex-col md:justify-center md:overflow-hidden">
                     <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="font-semibold mb-2">아직 면접 연습 기록이 없어요</h3>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-sm text-gray-600">
                       첫 번째 면접 연습을 시작해보세요
                     </p>
-                    <Button 
-                      onClick={() => currentPersona ? onNavigate('interview-practice') : onNavigate('persona-waiting', 'interview')}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      면접 연습 시작하기
-                    </Button>
                   </Card>
                 )}
 
@@ -163,16 +157,15 @@ export function InterviewHub({
                     <h3 className="font-medium">면접 기록 ({sessions.length}개)</h3>
                     <div className="grid gap-4">
                       {sessions.map((session) => (
-                        <Card 
-                          key={session.id} 
-                          className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => {
-                            onSessionSelect(session);
-                            onNavigate('interview-results');
-                          }}
+                        <Card
+                          key={session.id}
+                          className="p-4 hover:shadow-md transition-shadow"
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex-1">
+                            <div className="flex-1 cursor-pointer" onClick={() => {
+                              onSessionSelect(session);
+                              onNavigate('interview-results');
+                            }}>
                               <div className="flex items-center space-x-3 mb-2">
                                 <Badge className={`${getScoreColor(session.score)} bg-opacity-10`}>
                                   {session.score}점 ({getScoreGrade(session.score)})
@@ -183,8 +176,11 @@ export function InterviewHub({
                                 {session.useCoverLetter && (
                                   <Badge variant="outline">자기소개서 기반</Badge>
                                 )}
+                                {session.useVoiceInterview && (
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700">음성 면접</Badge>
+                                )}
                               </div>
-                              
+
                               <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <span className="flex items-center space-x-1">
                                   <Calendar className="h-3 w-3" />
@@ -196,8 +192,16 @@ export function InterviewHub({
                                 </span>
                               </div>
                             </div>
-                            
-                            <Button variant="outline" size="sm">
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSessionSelect(session);
+                                onNavigate('interview-results');
+                              }}
+                            >
                               상세보기
                             </Button>
                           </div>

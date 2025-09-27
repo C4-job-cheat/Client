@@ -152,7 +152,7 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
   }
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-xl shadow-sm p-4 ${className}`}>
+    <div className={`bg-white border border-black rounded-xl shadow-md p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-900">내 페르소나</h3>
         <span className="text-xs text-gray-400">현재 설정</span>
@@ -186,7 +186,7 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
           </div>
           {/* 프로필 사진을 4개 필드와 동일한 높이로 우측에 배치 */}
           <div className="ml-6 mr-2 mt-2">
-            <div className="w-32 h-40 bg-gradient-to-b from-blue-100 to-purple-100 rounded-3xl border border-gray-200 flex items-center justify-center">
+            <div className="w-32 h-40 bg-gradient-to-b from-blue-100 to-purple-100 rounded-3xl border border-black shadow-sm flex items-center justify-center">
               <User className="h-10 w-10 text-gray-400" />
             </div>
           </div>

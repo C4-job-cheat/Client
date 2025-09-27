@@ -40,7 +40,7 @@ const mockJobs: Job[] = [
       jobDescription: '사용자 인터페이스를 개발하고 유지 관리하는 역할',
       requiredSkills: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', '정보처리기사']
     },
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
+    logoUrl: '/og-ads.png'
   },
   {
     id: '2',
@@ -64,7 +64,7 @@ const mockJobs: Job[] = [
       jobDescription: '사용자 경험을 디자인하고 프로토타입을 제작하는 역할',
       requiredSkills: ['Figma', 'Sketch', 'Adobe Creative Suite', '컴퓨터그래픽스운용기능사']
     },
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
+    logoUrl: '/og-ads.png'
   },
   {
     id: '3',
@@ -88,7 +88,7 @@ const mockJobs: Job[] = [
       jobDescription: '데이터를 분석하여 비즈니스 인사이트를 도출하는 역할',
       requiredSkills: ['Python', 'SQL', 'Tableau', 'R', '데이터분석전문가', 'SQL개발자']
     },
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
+    logoUrl: '/og-ads.png'
   },
   {
     id: '4',
@@ -112,12 +112,12 @@ const mockJobs: Job[] = [
       jobDescription: '프론트엔드와 백엔드를 모두 개발하는 역할',
       requiredSkills: ['React', 'Node.js', 'Java', 'AWS', '정보처리기사', 'AWS Solutions Architect']
     },
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
+    logoUrl: '/og-ads.png'
   }
 ];
 
 // 레이더 차트 컴포넌트
-function CapabilityRadarChart() {
+function CapabilityRadarChart({ onCapabilityClick }: { onCapabilityClick: (index: number) => void }) {
   const personaCapabilities = [
     { subject: '직무 전문성', A: 88, fullMark: 100 },
     { subject: '성장 잠재력', A: 90, fullMark: 100 },
@@ -154,11 +154,23 @@ function CapabilityRadarChart() {
       {/* 레이더 차트 (축 호버 시 설명/점수 툴팁 표시) */}
       <div className="h-64 relative">
         <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={personaCapabilities}>
+            <RadarChart
+              data={personaCapabilities}
+              onClick={(data) => {
+                if (data && data.activeLabel) {
+                  const capabilityIndex = personaCapabilities.findIndex(
+                    cap => cap.subject === data.activeLabel
+                  );
+                  if (capabilityIndex !== -1) {
+                    onCapabilityClick(capabilityIndex);
+                  }
+                }
+              }}
+            >
               <PolarGrid gridType="circle" />
-              <PolarAngleAxis 
-                dataKey="subject" 
-                className="text-sm cursor-pointer" 
+              <PolarAngleAxis
+                dataKey="subject"
+                className="text-sm cursor-pointer"
                 tick={{ fill: '#4B5563', fontSize: 12 }}
               />
               <PolarRadiusAxis angle={90} domain={[0, 100]} className="text-xs" />
@@ -195,49 +207,66 @@ function CapabilityRadarChart() {
 
 // AI 종합 분석 컴포넌트
 function AIAnalysisSummary() {
+  const analysisData = [
+    { title: '직무 전문성', score: 88, color: 'text-blue-600', summary: '컴퓨터공학 전공과 정보처리기사 자격증으로 기본기는 탄탄하나 실무 경험 보완 필요' },
+    { title: '성장 잠재력', score: 90, color: 'text-green-600', summary: '기술 습득 의욕과 자기계발 의지가 뛰어나며 온라인 강의를 통한 지속적 성장 중' },
+    { title: '문제 해결력', score: 85, color: 'text-purple-600', summary: '논리적 사고력이 우수하고 알고리즘 문제 해결 경험이 풍부하여 체계적 접근 가능' },
+    { title: '협업 능력', score: 78, color: 'text-orange-600', summary: '기본적인 팀워크는 갖추었으나 다양한 직무와의 협업 경험과 소통 스킬 향상 필요' },
+    { title: '적응력', score: 92, color: 'text-teal-600', summary: '변화하는 환경에 대한 적응력이 뛰어나고 새로운 기술과 트렌드에 대한 관심 높음' }
+  ];
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">AI 분석 요약</h3>
-        <p className="text-sm text-gray-500">현재 페르소나 기반 역량 분석 결과</p>
+    <div className="h-full overflow-auto">
+      {/* 헤더 */}
+      <div className="mb-2">
+        <h3 className="text-sm font-semibold text-gray-900">AI 분석 요약</h3>
+        <p className="text-xs text-gray-500">역량별 세부 분석</p>
       </div>
 
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <div className="flex items-start space-x-3">
-            <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-gray-900 text-sm font-medium mb-1">핵심 강점</p>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                적응력과 성장 잠재력이 특히 뛰어납니다. 변화하는 환경에 빠르게 적응하며,
-                새로운 기술과 지식을 습득하는 의욕이 높아 IT 분야에서 성공할 가능성이 큽니다.
-              </p>
+      {/* 각 역량별 요약 */}
+      <div className="space-y-1.5">
+        {analysisData.map((item, index) => (
+          <div key={index} className="border-l-3 border-gray-200 pl-2 py-0.5">
+            <div className="flex items-center justify-between mb-0.5">
+              <h4 className={`text-xs font-semibold ${item.color}`}>
+                {item.title}
+              </h4>
+              <span className={`text-xs font-medium ${item.color}`}>
+                {item.score}
+              </span>
             </div>
+            <p className="text-xs text-gray-600 leading-tight">
+              {item.summary}
+            </p>
           </div>
-
-          <div className="flex items-start space-x-3">
-            <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0"></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-gray-900 text-sm font-medium mb-1">개선 영역</p>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                협업 능력을 더 발전시키면 팀 프로젝트에서 더욱 효과적으로 기여할 수 있을 것으로 보입니다.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3">
-            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-gray-900 text-sm font-medium mb-1">추천 방향</p>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                현재 역량을 바탕으로 프론트엔드 개발이나 데이터 분석 분야에서
-                높은 성과를 낼 수 있을 것으로 예상됩니다.
-              </p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
+  );
+}
+
+// AI 종합 평가 컴포넌트
+function FinalEvaluation() {
+  return (
+    <Card className="p-6">
+      <div className="flex items-start space-x-4">
+        <div className="flex-shrink-0">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
+            <Brain className="w-6 h-6 text-blue-600" />
+          </div>
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">종합 평가</h3>
+          <p className="text-sm text-gray-800 leading-relaxed">
+            전반적으로 IT 분야에서 높은 성장 가능성을 보이는 인재입니다.
+            특히 적응력과 성장 잠재력이 뛰어나 빠르게 변화하는 기술 환경에 잘 적응할 수 있을 것으로 예상됩니다.
+            현재 기술적 기반은 탄탄하나 실무 경험과 협업 역량을 보완한다면
+            프론트엔드 개발이나 데이터 분석 분야에서 큰 성과를 낼 수 있을 것입니다.
+            지속적인 학습 의욕과 문제 해결 능력을 바탕으로 장기적으로 시니어 개발자로 성장할 잠재력이 충분합니다.
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -245,6 +274,7 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
   const [displayedJobs, setDisplayedJobs] = useState<Job[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [selectedCapability, setSelectedCapability] = useState(0); // 선택된 역량 인덱스
 
   useEffect(() => {
     setDisplayedJobs(mockJobs.slice(0, 4));
@@ -300,7 +330,7 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
     <TooltipProvider>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-xl drop-shadow-sm">
+        <header className="bg-white border-b border-gray-200 px-6 py-2 shadow-sm">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <Button
               variant="ghost"
@@ -329,7 +359,7 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
               {/* 좌측 4/11: 레이더 차트 */}
               <div className="lg:col-span-4">
                 <Card className="p-4 h-80">
-                  <CapabilityRadarChart />
+                  <CapabilityRadarChart onCapabilityClick={() => {}} />
                 </Card>
               </div>
 
@@ -339,6 +369,11 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
                   <AIAnalysisSummary />
                 </Card>
               </div>
+            </div>
+
+            {/* 종합 평가 - 전체 가로폭 */}
+            <div className="mb-6">
+              <FinalEvaluation />
             </div>
 
           </div>
@@ -363,11 +398,18 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
                     className="group cursor-pointer rounded-xl border border-gray-200 overflow-hidden bg-white hover:shadow transition-shadow min-h-[260px]"
                     onClick={() => onJobSelect(job.id)}
                   >
-                    {/* Top gradient area with small logo and match badge */}
-                    <div
-                      className="relative h-32 bg-no-repeat bg-center bg-cover"
-                      style={{ backgroundImage: "url('/og-ads.png')" }}
-                    >
+                    {/* Top area with logo and match badge */}
+                    <div className="relative h-32 overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {job.logoUrl && (
+                        <img
+                          src={job.logoUrl}
+                          alt={`${job.company} 로고`}
+                          className="w-16 h-16 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
                       <button
                         className={`absolute top-2 right-2 text-gray-400 hover:text-gray-600`}
                         onClick={(e) => {

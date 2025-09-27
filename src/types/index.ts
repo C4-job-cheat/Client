@@ -16,6 +16,8 @@ export type Page =
   | "interview-hub"
   | "interview-practice"
   | "interview-questions"
+  | "voice-interview-guide"
+  | "voice-interview-questions"
   | "interview-results";
 
 // 페르소나 타입
@@ -77,6 +79,12 @@ export interface Job {
 }
 
 // 자기소개서 타입
+export interface CoverLetterParagraph {
+  id: string;
+  text: string;
+  explanation: string;
+}
+
 export interface CoverLetter {
   id: string;
   personaId: string;
@@ -86,6 +94,7 @@ export interface CoverLetter {
   experience: string;
   style: "experience" | "knowledge" | "creative";
   content: string;
+  paragraphs?: CoverLetterParagraph[];
   createdAt: string;
 }
 

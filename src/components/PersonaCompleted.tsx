@@ -4,6 +4,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { motion } from 'framer-motion';
 import { Sparkles, CheckCircle, TrendingUp, ArrowRight, Star } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Page, Persona } from '../types';
 
 interface PersonaCompletedProps {
@@ -16,15 +17,94 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
+    // 브라우저 알림 권한 요청 및 알림 표시
+    const requestNotificationAndShow = async () => {
+      try {
+        // 브라우저가 알림을 지원하는지 확인
+        if (!('Notification' in window)) {
+          console.log('이 브라우저는 데스크톱 알림을 지원하지 않습니다.');
+          // 브라우저 알림을 지원하지 않는 경우 토스트 알림으로 대체
+          showToastNotification();
+          return;
+        }
+
+        // 알림 권한 상태 확인
+        if (Notification.permission === 'default') {
+          // 권한 요청
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            showNotification();
+          } else if (permission === 'denied') {
+            // 권한이 거부된 경우 토스트 알림으로 대체
+            showToastNotification();
+          }
+        } else if (Notification.permission === 'granted') {
+          // 이미 권한이 있으면 바로 알림 표시
+          showNotification();
+        } else if (Notification.permission === 'denied') {
+          // 권한이 거부된 경우 토스트 알림으로 대체
+          showToastNotification();
+        }
+      } catch (error) {
+        console.error('알림 권한 요청 중 오류:', error);
+        // 오류가 발생한 경우에도 토스트 알림으로 대체
+        showToastNotification();
+      }
+    };
+
+    const showNotification = () => {
+      const notification = new Notification('페르소나 생성 완료되었습니다!', {
+        body: `${persona.jobCategory} 분야 페르소나가 성공적으로 생성되었습니다. 이제 취업인을 즐겨보세용가리리!`,
+        icon: '/favicon.ico', // 앱 아이콘 (public 폴더에 있어야 함)
+        tag: 'persona-completed', // 동일한 태그의 알림은 하나만 표시
+        requireInteraction: false, // 자동으로 사라지도록 설정
+      });
+
+      // 알림 클릭 시 브라우저 탭으로 포커스 이동
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+
+      // 5초 후 자동으로 알림 닫기
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
+    };
+
+    const showToastNotification = () => {
+      toast.success('페르소나 생성 완료! 🎉', {
+        description: `${persona.jobCategory} 분야 페르소나가 성공적으로 생성되었습니다. 이제 맞춤 공고를 확인해보세요!`,
+        duration: 5000,
+        action: {
+          label: '공고 보기',
+          onClick: () => onNavigate('job-recommendations')
+        }
+      });
+    };
+
+    // 첫 번째 단계에서만 3초 후에 알림 표시
+    let notificationTimer: ReturnType<typeof setTimeout> | null = null;
+    if (currentStep === 0) {
+      notificationTimer = setTimeout(() => {
+        requestNotificationAndShow();
+      }, 3000);
+    }
+
     // 3초 후에 자동으로 다음 단계로 진행
-    const timer = setTimeout(() => {
+    const stepTimer = setTimeout(() => {
       if (currentStep < 2) {
         setCurrentStep(currentStep + 1);
       }
     }, 3000);
 
-    return () => clearTimeout(timer);
-  }, [currentStep]);
+    return () => {
+      if (notificationTimer) {
+        clearTimeout(notificationTimer);
+      }
+      clearTimeout(stepTimer);
+    };
+  }, [currentStep, persona.jobCategory]);
 
   const steps = [
     {

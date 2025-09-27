@@ -10,7 +10,8 @@
       "Bash(while read comp)",
       "Bash(do echo -n \"$comp: \")",
       "Bash(git checkout:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

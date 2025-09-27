@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { PersonaCardHeader } from './PersonaCardHeader';
 import type { Page, Persona } from '../types';
 
 // Mock data for jobs
@@ -110,7 +111,7 @@ export function ScrapedJobs({
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-100 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="max-w-6xl mx-auto px-6 py-2">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -128,6 +129,13 @@ export function ScrapedJobs({
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* 페르소나 카드 헤더 */}
+        {currentPersona && (
+          <div className="mb-8">
+            <PersonaCardHeader persona={currentPersona} />
+          </div>
+        )}
+
         {scrapedJobList.length === 0 ? (
           <div className="text-center py-16">
             <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -139,11 +147,6 @@ export function ScrapedJobs({
           </div>
         ) : (
           <>
-            <div className="mb-6">
-              <p className="text-gray-600">
-                {currentPersona?.jobCategory} • 총 {scrapedJobList.length}개의 스크랩 공고
-              </p>
-            </div>
 
             {/* Desktop-optimized Full-width Table */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
@@ -153,7 +156,7 @@ export function ScrapedJobs({
                     <TableHead className="py-4 px-6 font-semibold text-gray-900">기업명</TableHead>
                     <TableHead className="py-4 px-6 font-semibold text-gray-900">공고명</TableHead>
                     <TableHead className="py-4 px-6 font-semibold text-gray-900">직무</TableHead>
-                    <TableHead className="py-4 px-6 font-semibold text-gray-900">필요 기술 스택</TableHead>
+                    <TableHead className="py-4 px-6 font-semibold text-gray-900">필요 자격증/기술 스택</TableHead>
                     <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">추천도</TableHead>
                     <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">마감일</TableHead>
                   </TableRow>

@@ -10,6 +10,8 @@ import { CoverLetterDraft } from "./components/CoverLetterDraft";
 import { InterviewHub } from "./components/InterviewHub";
 import { InterviewPractice } from "./components/InterviewPractice";
 import { InterviewQuestions } from "./components/InterviewQuestions";
+import { VoiceInterviewGuide } from "./components/VoiceInterviewGuide";
+import { VoiceInterviewQuestions } from "./components/VoiceInterviewQuestions";
 import { InterviewResults } from "./components/InterviewResults";
 import { ScrapedJobs } from "./components/ScrapedJobs";
 import { PersonaWaitingPage } from "./components/PersonaWaitingPage";
@@ -71,6 +73,7 @@ export default function App() {
 
   const handlePersonaComplete = (persona: Persona) => {
     addPersona(persona);
+    // 웨이팅 페이지 건너뛰고 바로 완료 페이지로 이동
     setCurrentPage("persona-completed");
   };
 
@@ -112,7 +115,12 @@ export default function App() {
 
   const handleInterviewStart = (session: InterviewSession) => {
     setCurrentInterviewSession(session);
-    setCurrentPage("interview-questions");
+    // 음성 면접 여부에 따라 다른 페이지로 라우팅
+    if (session.useVoiceInterview) {
+      setCurrentPage("voice-interview-questions");
+    } else {
+      setCurrentPage("interview-questions");
+    }
   };
 
   const handleInterviewComplete = (
@@ -261,6 +269,22 @@ export default function App() {
             onComplete={handleInterviewComplete}
           />
         );
+      case "voice-interview-guide":
+        return (
+          <VoiceInterviewGuide
+            session={currentInterviewSession}
+            onNavigate={navigateTo}
+            onStart={() => navigateTo('voice-interview-questions')}
+          />
+        );
+      case "voice-interview-questions":
+        return (
+          <VoiceInterviewQuestions
+            session={currentInterviewSession}
+            onNavigate={navigateTo}
+            onComplete={handleInterviewComplete}
+          />
+        );
       case "interview-results":
         return (
           <InterviewResults
@@ -285,7 +309,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
+    <div className="min-h-screen bg-white">
       {renderCurrentPage()}
       <Toaster />
     </div>

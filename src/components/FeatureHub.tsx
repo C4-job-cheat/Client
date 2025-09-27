@@ -20,23 +20,21 @@ interface FeatureHubProps {
     noPersonaSubtitle: string;
   };
   children?: ReactNode;
+  hasRecords?: boolean;
 }
 
-export function FeatureHub({ 
-  currentPersona, 
-  onNavigate, 
+export function FeatureHub({
+  currentPersona,
+  onNavigate,
   feature,
-  children 
+  children,
+  hasRecords = false
 }: FeatureHubProps) {
   return (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: `url('/notion2.avif')`
-      }}
-    >
+    <div className="min-h-screen bg-gray-50">
+      <div>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-xl">
+      <header className="bg-white border-b border-gray-200 px-6 py-2 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Button
             variant="ghost"
@@ -61,60 +59,47 @@ export function FeatureHub({
             <p className="text-gray-600">{feature.subtitle}</p>
           </div>
 
-          {/* Action Button + Persona Card Row */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* 새 기능 시작 */}
-            <Card 
-              className="p-8 cursor-pointer hover:shadow-lg transition-shadow border-2 border-dashed border-blue-300 hover:border-blue-400"
-              onClick={() => currentPersona ? onNavigate(feature.startPage) : onNavigate('persona-waiting', feature.waitingSource)}
-            >
-              <div className="text-center space-y-6 py-8">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                  {feature.icon}
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">{feature.actionText}</h3>
-                  <p className="text-sm text-gray-600">
-                    AI와 함께 맞춤형 {feature.type === 'cover-letter' ? '자기소개서를' : '면접 연습을'} {feature.type === 'cover-letter' ? '작성해보세요' : '해보세요'}
-                  </p>
-                </div>
-                <Button
-                  className="w-full bg-black hover:bg-gray-800 text-white border border-gray-800"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (currentPersona) {
-                      onNavigate(feature.startPage);
-                    } else {
-                      onNavigate('persona-waiting', feature.waitingSource);
-                    }
-                  }}
-                >
-                  {feature.actionText} 시작
-                </Button>
-              </div>
-            </Card>
+          {/* 메인 콘텐츠: 좌측 작성 기록 + 우측 페르소나 카드 */}
+          <div className="grid md:grid-cols-3 gap-6 md:items-start">
+            {/* 좌측: 작성 기록 영역 */}
+            <div className="md:col-span-2 space-y-6 md:min-h-[600px] md:flex md:flex-col">
+              {children}
+            </div>
 
-            {/* 페르소나 카드 또는 페르소나 설정 필요 안내 */}
-            {currentPersona ? (
-              <PersonaCard persona={currentPersona} />
-            ) : (
-              <Card className="p-8 text-center bg-yellow-50 border-yellow-200">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="font-semibold mb-2">{feature.noPersonaTitle}</h3>
-                <p className="text-sm text-gray-600 mb-4">{feature.noPersonaSubtitle}</p>
-                <Button onClick={() => onNavigate('persona-waiting', feature.waitingSource)}>
-                  페르소나 설정하기
-                </Button>
-              </Card>
-            )}
+            {/* 우측: 페르소나 카드 + 버튼 */}
+            <div className={`space-y-4 ${hasRecords ? 'md:sticky md:top-8' : ''}`}>
+              {currentPersona ? (
+                <>
+                  <PersonaCard persona={currentPersona} />
+                  <div className="text-center">
+                    <Button
+                      className="w-full bg-black hover:bg-gray-800 text-white border border-black shadow-sm"
+                      onClick={() => onNavigate(feature.startPage)}
+                    >
+                      {feature.actionText} 시작
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Card className="p-8 text-center bg-yellow-50 border border-black shadow-md">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    {feature.icon}
+                  </div>
+                  <h3 className="font-semibold mb-2">{feature.noPersonaTitle}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{feature.noPersonaSubtitle}</p>
+                  <Button
+                    className="w-full"
+                    onClick={() => onNavigate('persona-waiting', feature.waitingSource)}
+                  >
+                    페르소나 설정하기
+                  </Button>
+                </Card>
+              )}
+            </div>
           </div>
-
-          {/* Additional Content */}
-          {children}
         </div>
       </main>
+      </div>
     </div>
   );
 }

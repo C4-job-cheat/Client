@@ -52,7 +52,13 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
       useVoiceInterview // 음성 면접 여부 추가
     };
 
-    onStart(session);
+    // 음성 면접인 경우 안내 페이지로 이동, 아니면 바로 시작
+    if (useVoiceInterview) {
+      onStart(session);
+      onNavigate('voice-interview-guide');
+    } else {
+      onStart(session);
+    }
   };
 
   const generateQuestions = () => {
@@ -182,7 +188,7 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-6 py-2">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Button
             variant="ghost"

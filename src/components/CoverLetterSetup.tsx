@@ -6,7 +6,8 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Badge } from './ui/badge';
-import { ArrowLeft, FileText, User, Briefcase, GraduationCap } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
+import { PersonaCard } from './PersonaCard';
 import type { Page, Persona, CoverLetter } from '../types';
 
 interface CoverLetterSetupProps {
@@ -82,7 +83,7 @@ ${formData.targetCompany}에서 제 역량을 발휘하여 회사의 성장에 �
       }}
     >
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-6 py-2">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Button
             variant="ghost"
@@ -101,77 +102,11 @@ ${formData.targetCompany}에서 제 역량을 발휘하여 회사의 성장에 �
       {/* Main Content */}
       <main className="px-6 py-8">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-5 gap-8">
-          {/* Left: Persona Summary */}
+          {/* Left: Persona Card */}
           <div className="lg:col-span-2">
-            <Card className="p-6 sticky top-8">
-              <div className="flex items-center space-x-2 mb-4">
-                <User className="h-5 w-5 text-blue-600" />
-                <h2 className="font-semibold">현재 페르소나</h2>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Briefcase className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">직무 분야</span>
-                  </div>
-                  <Badge variant="secondary">{currentPersona.jobCategory}</Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <GraduationCap className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">학력</span>
-                  </div>
-                  <p className="text-sm">
-                    {currentPersona.education.level}
-                    {currentPersona.education.major && ` (${currentPersona.education.major})`}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-sm text-gray-600">경력</span>
-                  <p className="text-sm">
-                    {currentPersona.experience.hasExperience 
-                      ? `${currentPersona.experience.years}년 경력` 
-                      : '신입'
-                    }
-                  </p>
-                </div>
-
-                {currentPersona.certifications.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-600">자격증</span>
-                    <div className="flex flex-wrap gap-1">
-                      {currentPersona.certifications.slice(0, 3).map((cert) => (
-                        <Badge key={cert} variant="outline" className="text-xs">
-                          {cert}
-                        </Badge>
-                      ))}
-                      {currentPersona.certifications.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{currentPersona.certifications.length - 3}개 더
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {currentPersona.languages.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-600">언어 능력</span>
-                    <div className="space-y-1">
-                      {currentPersona.languages.slice(0, 2).map((lang) => (
-                        <div key={lang.language} className="flex justify-between text-xs">
-                          <span>{lang.language}</span>
-                          <span className="text-gray-500">{lang.level}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
+            <div className="sticky top-8">
+              <PersonaCard persona={currentPersona} />
+            </div>
           </div>
 
           {/* Right: Input Form */}

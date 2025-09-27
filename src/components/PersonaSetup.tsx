@@ -3,7 +3,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 // Select 관련 컴포넌트는 현재 단계에서 사용하지 않음
 import { Label } from './ui/label';
-import { ArrowLeft, ArrowRight, Check, FileText } from 'lucide-react';
+import { Progress } from './ui/progress';
+import { ArrowLeft, ArrowRight, Check, FileText, Upload } from 'lucide-react';
 import type { Page, Persona } from '../types';
 
 interface PersonaSetupProps {
@@ -111,6 +112,9 @@ const certifications = [
 
 export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [formData, setFormData] = useState<NewPersonaFormData>({
     id: Date.now().toString(),
     jobCategory: '',
@@ -182,16 +186,27 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
     onComplete(persona);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== 'text/html') {
-        alert('HTML 파일만 업로드 가능합니다.');
-        return;
+  const processFile = (file: File) => {
+    if (file.type !== 'text/html') {
+      alert('HTML 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    const reader = new FileReader();
+
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(progress);
       }
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
+    };
+
+    reader.onload = (e) => {
+      // 업로드 완료 후 약간의 지연으로 자연스러운 느낌 제공
+      setTimeout(() => {
         const content = e.target?.result as string;
         updateFormData({
           uploadedFile: {
@@ -200,8 +215,44 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
             fileContent: content
           }
         });
-      };
-      reader.readAsText(file);
+        setIsUploading(false);
+        setUploadProgress(100);
+      }, 300);
+    };
+
+    reader.onerror = () => {
+      setIsUploading(false);
+      setUploadProgress(0);
+      alert('파일 읽기 중 오류가 발생했습니다.');
+    };
+
+    reader.readAsText(file);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      processFile(files[0]);
     }
   };
 
@@ -360,7 +411,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               {/* 보유 기술 스택 */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">보유 기술 스택 (복수 선택 가능)</h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[20.5rem] max-h-[20.5rem] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-blue-500">
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[20.5rem] max-h-[20.5rem] overflow-y-auto">
                   <div className="flex flex-wrap gap-2">
                     {techStacks.map((tech) => (
                       <button
@@ -395,7 +446,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               {/* 보유 자격증 */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">보유 자격증 (복수 선택 가능)</h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[20.5rem] max-h-[20.5rem] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-blue-500">
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[20.5rem] max-h-[20.5rem] overflow-y-auto">
                   <div className="flex flex-wrap gap-2">
                     {certifications.map((cert) => (
                       <button
@@ -452,27 +503,65 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
             {/* 하단: 업로드 영역 + 결과 */}
             <div className="space-y-6">
               {/* 파일 업로드 영역 */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center hover:border-blue-400 transition-all duration-200 bg-white min-h-[18rem] flex items-center justify-center">
-                <input
-                  type="file"
-                  accept=".html,.htm"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="html-file-upload"
-                />
-                <label htmlFor="html-file-upload" className="cursor-pointer">
-                  <div className="space-y-4">
-                    <FileText className="h-14 w-14 mx-auto text-gray-400" />
-                    <div>
-                      <p className="text-lg font-medium text-gray-700 mb-2">
-                        HTML 파일을 선택하거나 드래그해주세요
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        .html, .htm 파일만 업로드 가능합니다
-                      </p>
+              <div
+                className={`border-2 border-dashed rounded-lg p-10 text-center transition-all duration-200 bg-white min-h-[18rem] flex items-center justify-center ${
+                  isDragOver
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-blue-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {isUploading ? (
+                  // 업로드 진행 중 UI
+                  <div className="space-y-6 w-full max-w-md">
+                    <div className="flex flex-col items-center space-y-4">
+                      <Upload className="h-14 w-14 text-blue-500 animate-pulse" />
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-gray-700 mb-2">
+                          파일 업로드 중...
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          잠시만 기다려주세요
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 진행률 바 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">업로드 진행률</span>
+                        <span className="font-medium text-blue-600">{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} className="h-3" />
                     </div>
                   </div>
-                </label>
+                ) : (
+                  // 기본 업로드 UI
+                  <>
+                    <input
+                      type="file"
+                      accept=".html,.htm"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="html-file-upload"
+                    />
+                    <label htmlFor="html-file-upload" className="cursor-pointer">
+                      <div className="space-y-4">
+                        <FileText className="h-14 w-14 mx-auto text-gray-400" />
+                        <div>
+                          <p className="text-lg font-medium text-gray-700 mb-2">
+                            HTML 파일을 선택하거나 드래그해주세요
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            .html, .htm 파일만 업로드 가능합니다
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  </>
+                )}
               </div>
 
               {/* 업로드된 파일 정보 */}
@@ -485,9 +574,13 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                       <p className="text-sm text-green-700">파일이 성공적으로 업로드되었습니다</p>
                     </div>
                     <button
-                      onClick={() => updateFormData({
-                        uploadedFile: { file: null, fileName: '', fileContent: '' }
-                      })}
+                      onClick={() => {
+                        updateFormData({
+                          uploadedFile: { file: null, fileName: '', fileContent: '' }
+                        });
+                        setUploadProgress(0);
+                        setIsUploading(false);
+                      }}
                       className="px-3 py-1 text-sm text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors"
                     >
                       삭제
@@ -556,11 +649,11 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
           <div className="lg:grid lg:grid-cols-12 lg:gap-8">
             {/* Desktop: Left side - Step info */}
             <div className="hidden lg:block lg:col-span-3 xl:col-span-3">
-              <div className="sticky top-28">
+              <div className="sticky top-24">
                 <div className="space-y-4">
                   <div>
                     <h1 className="text-xl font-bold text-gray-900 mb-1">페르소나 설정</h1>
-                    
+
                   </div>
 
                   {/* Step indicators */}
@@ -650,7 +743,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
 
             {/* Right: Persona preview card */}
             <div className="hidden lg:block lg:col-span-3 xl:col-span-3">
-              <div className="sticky top-28">
+              <div className="sticky top-24">
                 <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-900">내 페르소나 미리보기</h3>
