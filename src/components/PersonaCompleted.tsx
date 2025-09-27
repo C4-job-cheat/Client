@@ -104,7 +104,7 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
       }
       clearTimeout(stepTimer);
     };
-  }, [currentStep, persona.jobCategory]);
+  }, [currentStep, onNavigate, persona.jobCategory]);
 
   const steps = [
     {

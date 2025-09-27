@@ -21,6 +21,34 @@ export type Page =
   | "interview-results";
 
 // 페르소나 타입
+export interface PersonaEducationInfo {
+  level: string;
+  school: string;
+  major: string;
+  graduated?: boolean;
+}
+
+export interface PersonaSkillsInfo {
+  techStack: string[];
+  certifications: string[];
+  achievements: string[];
+}
+
+export interface PersonaCategorySpecific {
+  specificJob?: string;
+  education?: PersonaEducationInfo;
+  skills?: PersonaSkillsInfo;
+  customJob?: string;
+  careerGoals?: {
+    goal?: string;
+  };
+  uploadedFile?: {
+    file: File | null;
+    fileName: string;
+    fileContent: string;
+  };
+}
+
 export interface Persona {
   id: string;
   jobCategory: string;
@@ -44,7 +72,7 @@ export interface Persona {
   };
   certifications: string[];
   achievements: string;
-  categorySpecific: Record<string, any>;
+  categorySpecific: PersonaCategorySpecific;
   description: string;
 }
 

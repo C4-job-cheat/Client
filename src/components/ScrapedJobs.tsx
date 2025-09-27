@@ -194,20 +194,15 @@ export function ScrapedJobs({
                       </TableCell>
                       <TableCell className="py-4 px-6">
                         <div className="flex flex-wrap gap-1 max-w-xs">
-                          {job.details.techStack?.slice(0, 3).map((tech) => {
-                            // Mock persona tech skills - in real app, get from currentPersona
-                            const personaTechSkills = ['React', 'TypeScript', 'JavaScript', 'HTML/CSS'];
-                            const hasSkill = personaTechSkills.includes(tech);
-                            return (
-                              <Badge 
-                                key={tech} 
-                                variant={hasSkill ? "default" : "outline"}
-                                className={hasSkill ? "bg-blue-600 text-white text-xs" : "bg-gray-100 text-gray-500 text-xs"}
-                              >
-                                {tech}
-                              </Badge>
-                            );
-                          })}
+                      {job.details.techStack?.slice(0, 3).map((tech) => (
+                        <Badge 
+                          key={tech} 
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {tech}
+                        </Badge>
+                      ))}
                           {job.details.techStack && job.details.techStack.length > 3 && (
                             <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
                               +{job.details.techStack.length - 3}

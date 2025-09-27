@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -25,11 +25,26 @@ interface InterviewResultsProps {
 }
 
 export function InterviewResults({ session, onNavigate }: InterviewResultsProps) {
-  const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<InterviewSession['questions'][number] | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
-  const handleQuestionClick = (question: any) => {
+  const { avgAnswerLength, avgTimeSpent, totalTimeSpent } = useMemo(() => {
+    if (!session || session.questions.length === 0) {
+      return { avgAnswerLength: 0, avgTimeSpent: 0, totalTimeSpent: 0 };
+    }
+
+    const totalLength = session.questions.reduce((sum, q) => sum + q.answer.length, 0);
+    const totalTime = session.questions.reduce((sum, q) => sum + q.timeSpent, 0);
+
+    return {
+      avgAnswerLength: totalLength / session.questions.length,
+      avgTimeSpent: totalTime / session.questions.length,
+      totalTimeSpent: totalTime,
+    };
+  }, [session]);
+
+  const handleQuestionClick = (question: InterviewSession['questions'][number]) => {
     setSelectedQuestion(question);
     setShowDetailView(true);
   };
@@ -87,21 +102,17 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
     return '아직 부족한 부분이 많아요. 더 많은 연습이 필요합니다.';
   };
 
-  const avgAnswerLength = session.questions.reduce((sum, q) => sum + q.answer.length, 0) / session.questions.length;
-  const avgTimeSpent = session.questions.reduce((sum, q) => sum + q.timeSpent, 0) / session.questions.length;
-  const totalTimeSpent = session.questions.reduce((sum, q) => sum + q.timeSpent, 0);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}분 ${secs}초`;
   };
 
-  const questionTypes = {
-    'cover-letter': { label: '자기소개서 기반', color: 'bg-blue-100 text-blue-700' },
-    'job-knowledge': { label: '직무 지식', color: 'bg-green-100 text-green-700' },
-    'ai-recommended': { label: 'AI 추천', color: 'bg-purple-100 text-purple-700' }
-  };
+const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], { label: string; color: string }> = {
+  'cover-letter': { label: '자기소개서 기반', color: 'bg-blue-100 text-blue-700' },
+  'job-knowledge': { label: '직무 지식', color: 'bg-green-100 text-green-700' },
+  'ai-recommended': { label: 'AI 추천', color: 'bg-purple-100 text-purple-700' }
+};
 
   // 상세 보기 페이지 렌더링
   if (showDetailView && selectedQuestion) {
@@ -138,8 +149,8 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
             {/* Question Info */}
             <Card className="p-6">
               <div className="flex items-center space-x-2 mb-4">
-                <Badge className={questionTypes[selectedQuestion.type]?.color || 'bg-gray-100 text-gray-700'}>
-                  {questionTypes[selectedQuestion.type]?.label || '일반'}
+                <Badge className={QUESTION_TYPE_META[selectedQuestion.type]?.color || 'bg-gray-100 text-gray-700'}>
+                  {QUESTION_TYPE_META[selectedQuestion.type]?.label || '일반'}
                 </Badge>
                 <span className="text-sm text-gray-500">
                   소요 시간: {formatTime(selectedQuestion.timeSpent)}
@@ -399,8 +410,8 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
                               <span className="text-sm font-medium text-gray-500">
                                 Q{index + 1}.
                               </span>
-                              <Badge className={questionTypes[question.type]?.color || 'bg-gray-100 text-gray-700'}>
-                                {questionTypes[question.type]?.label || '일반'}
+                              <Badge className={QUESTION_TYPE_META[question.type]?.color || 'bg-gray-100 text-gray-700'}>
+                                {QUESTION_TYPE_META[question.type]?.label || '일반'}
                               </Badge>
                             </div>
                             <p className="font-medium mb-2">{question.question}</p>

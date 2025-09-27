@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
@@ -41,6 +41,17 @@ const mockJobDetail: Job = {
 
 export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onToggleScrap }: JobDetailProps) {
   const [isCoverLetterExpanded, setIsCoverLetterExpanded] = useState(false);
+  const job = mockJobDetail; // In real app, fetch by jobId
+
+  const personaSkills = useMemo(() => {
+    if (!currentPersona) {
+      return new Set<string>();
+    }
+
+    const techStack = currentPersona.categorySpecific?.skills?.techStack ?? [];
+    const certifications = currentPersona.certifications ?? [];
+    return new Set<string>([...techStack, ...certifications]);
+  }, [currentPersona]);
 
   if (!jobId || !currentPersona) {
     return (
@@ -55,8 +66,6 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
     );
   }
 
-  const job = mockJobDetail; // In real app, fetch by jobId
-
   // Generate comparison data with 5 indicators
   const comparisonData = [
     { subject: '기술 전문성', persona: 88, job: 85, fullMark: 100 },
@@ -66,17 +75,7 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
     { subject: '성장 잠재력', persona: 85, job: 78, fullMark: 100 }
   ];
 
-  const getMatchAnalysis = () => {
-    const strengths = comparisonData.filter(item => item.persona >= item.job);
-    const weaknesses = comparisonData.filter(item => item.persona < item.job);
-
-    return { strengths, weaknesses };
-  };
-
-  const { strengths, weaknesses } = getMatchAnalysis();
-
   // Mock current persona skills (기술 스택과 자격증 통합)
-  const personaSkills = ['React', 'TypeScript', 'JavaScript', 'HTML/CSS', '정보처리기사'];
 
   // Generate mock cover letter preview
   const generateCoverLetterPreview = () => {
@@ -194,7 +193,7 @@ ${job.company}의 혁신적인 핀테크 서비스 철학과 사용자 경험을
                         tick={{ fill: '#9ca3af', fontSize: 11 }}
                       />
                       <RechartsTooltip
-                        formatter={(value: any, name: string) => {
+                        formatter={(value: number, name: string) => {
                           const displayName = name === 'persona' ? '내 역량' : '공고 요구사항';
                           return [`${value}점`, displayName];
                         }}
@@ -262,7 +261,7 @@ ${job.company}의 혁신적인 핀테크 서비스 철학과 사용자 경험을
                       {job.details.requiredSkills?.map((skill) => (
                         <Badge
                           key={skill}
-                          className={personaSkills.includes(skill)
+                          className={personaSkills.has(skill)
                             ? "bg-blue-100 text-blue-800 border border-blue-200 px-1.5 py-0.5 text-xs"
                             : "bg-gray-200 text-gray-500 border border-gray-300 px-1.5 py-0.5 text-xs opacity-60"
                           }
@@ -282,7 +281,7 @@ ${job.company}의 혁신적인 핀테크 서비스 철학과 사용자 경험을
                       {job.details.preferredSkills?.map((skill) => (
                         <Badge
                           key={skill}
-                          className={personaSkills.includes(skill)
+                          className={personaSkills.has(skill)
                             ? "bg-blue-100 text-blue-800 border border-blue-200 px-1.5 py-0.5 text-xs"
                             : "bg-gray-200 text-gray-500 border border-gray-300 px-1.5 py-0.5 text-xs opacity-60"
                           }

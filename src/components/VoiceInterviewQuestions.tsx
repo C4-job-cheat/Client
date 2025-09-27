@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
-import { ArrowLeft, ArrowRight, Clock, MessageCircle, Mic, MicOff, Play, Pause, Volume2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MessageCircle, Mic, Play, Volume2 } from 'lucide-react';
 import { CircularTimer } from './CircularTimer';
 import type { Page, InterviewSession } from '../types';
 
@@ -21,7 +21,6 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordings, setRecordings] = useState<Blob[]>([]);
-  const [totalElapsedTime, setTotalElapsedTime] = useState(0);
   const [isQuestionPlaying, setIsQuestionPlaying] = useState(false);
   const [isPlayingRecording, setIsPlayingRecording] = useState(false);
   const [recordingUrls, setRecordingUrls] = useState<string[]>([]);
@@ -37,9 +36,9 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
 
     // 첫 번째 질문 자동 재생과 동시에 녹음 시작
     playQuestionAndStartRecording(session.questions[0].question);
-  }, [session]);
+  }, [session, playQuestionAndStartRecording]);
 
-  const playQuestionAndStartRecording = async (questionText: string) => {
+  const playQuestionAndStartRecording = useCallback(async (questionText: string) => {
     setIsQuestionPlaying(true);
     setRecordingState('idle');
     setIsTimerActive(false);
@@ -67,7 +66,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     setTimeout(() => {
       startRecording();
     }, 1000);
-  };
+  }, [startRecording]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -75,7 +74,6 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     if (isTimerActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => prev - 1);
-        setTotalElapsedTime(prev => prev + 1);
       }, 1000);
     } else if (timeLeft === 0 && recordingState === 'recording') {
       // 1분 완료 시 자동으로 녹음 중지 후 다음 질문
@@ -88,7 +86,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
         clearInterval(interval);
       }
     };
-  }, [timeLeft, isTimerActive, recordingState]);
+  }, [handleNextQuestion, isTimerActive, recordingState, timeLeft, stopRecording]);
 
   useEffect(() => {
     // 컴포넌트 언마운트 시 정리
@@ -102,27 +100,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     };
   }, []);
 
-  const playQuestion = async (questionText: string) => {
-    setIsQuestionPlaying(true);
-
-    return new Promise<void>((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(questionText);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 0.8;
-
-      utterance.onend = () => {
-        setIsQuestionPlaying(false);
-        resolve();
-      };
-
-      speechUtteranceRef.current = utterance;
-      speechSynthesis.speak(utterance);
-    });
-  };
-
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recordingStreamRef.current = stream;
@@ -200,31 +178,93 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
       console.error('녹음을 시작할 수 없습니다:', error);
       alert('마이크 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.');
     }
-  };
+  }, [currentQuestionIndex, recordingUrls, recordings]);
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingState === 'recording') {
       mediaRecorderRef.current.stop();
       setRecordingState('completed');
       setIsTimerActive(false);
     }
-  };
+  }, [recordingState]);
 
-  const pauseRecording = () => {
-    if (mediaRecorderRef.current && recordingState === 'recording') {
-      mediaRecorderRef.current.pause();
-      setRecordingState('paused');
+  const calculateScore = useCallback((questions: InterviewSession['questions']) => {
+    // 음성 면접의 경우 녹음이 있는지와 시간 사용량을 기준으로 점수 계산
+    let totalScore = 0;
+    questions.forEach((question, index) => {
+      const hasRecording = recordings[index] !== null && recordings[index] !== undefined;
+      const timeUsed = question.timeSpent;
+
+      if (hasRecording) {
+        totalScore += 70; // 기본 점수
+        if (timeUsed >= 30) totalScore += 20; // 충분한 시간 사용
+        if (timeUsed >= 45) totalScore += 10; // 더 충분한 시간 사용
+      }
+    });
+
+    return Math.min(Math.round(totalScore / questions.length), 100);
+  }, [recordings]);
+
+  const generateFeedback = useCallback((questions: InterviewSession['questions']) => {
+    const recordedCount = recordings.filter((r) => r !== null && r !== undefined).length;
+    const avgTime = questions.reduce((sum, q) => sum + q.timeSpent, 0) / questions.length;
+
+    return {
+      strengths: [
+        recordedCount === questions.length ? "모든 질문에 음성으로 답변하셨습니다." : `${recordedCount}개 질문에 답변하셨습니다.`,
+        avgTime >= 45 ? "충분한 시간을 활용해 답변하셨습니다." : "답변 시간 관리를 잘 하셨습니다."
+      ],
+      improvements: [
+        recordedCount < questions.length ? "일부 질문에서 답변을 완료하지 못했습니다." : "",
+        avgTime < 30 ? "더 구체적이고 상세한 답변을 해보세요." : ""
+      ].filter(Boolean),
+      suggestions: [
+        "음성 면접에서는 명확한 발음과 적절한 속도로 답변하는 것이 중요합니다.",
+        "실제 면접과 같은 환경에서 더 많은 연습을 해보세요.",
+        "각 질문에 대해 구체적인 사례를 들어 답변해보세요."
+      ]
+    };
+  }, [recordings]);
+
+  const proceedToNext = useCallback(() => {
+    const updatedQuestions = [...session.questions];
+    updatedQuestions[currentQuestionIndex] = {
+      ...currentQuestion,
+      answer: recordings[currentQuestionIndex] ? 'Voice Recording' : '',
+      timeSpent: 60 - timeLeft,
+    };
+
+    if (isLastQuestion) {
+      const completedSession: InterviewSession = {
+        ...session,
+        questions: updatedQuestions,
+        score: calculateScore(updatedQuestions),
+        feedback: generateFeedback(updatedQuestions),
+        completedAt: new Date().toISOString(),
+      };
+      onComplete(completedSession);
+    } else {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setTimeLeft(60);
       setIsTimerActive(false);
-    }
-  };
+      setRecordingState('idle');
 
-  const resumeRecording = () => {
-    if (mediaRecorderRef.current && recordingState === 'paused') {
-      mediaRecorderRef.current.resume();
-      setRecordingState('recording');
-      setIsTimerActive(true);
+      setTimeout(() => {
+        playQuestionAndStartRecording(session.questions[currentQuestionIndex + 1].question);
+      }, 1000);
     }
-  };
+  }, [calculateScore, currentQuestion, currentQuestionIndex, generateFeedback, isLastQuestion, onComplete, playQuestionAndStartRecording, recordings, session, timeLeft]);
+
+  const handleNextQuestion = useCallback(() => {
+    if (!currentQuestion) return;
+
+    if (recordingState === 'recording') {
+      stopRecording();
+      setTimeout(() => proceedToNext(), 500);
+    } else {
+      proceedToNext();
+    }
+  }, [currentQuestion, proceedToNext, recordingState, stopRecording]);
 
   const playRecording = (recordingUrl: string) => {
     if (!recordingUrl) return;
@@ -264,90 +304,6 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const currentQuestion = session.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / session.questions.length) * 100;
   const isLastQuestion = currentQuestionIndex === session.questions.length - 1;
-
-  const handleNextQuestion = () => {
-    if (!currentQuestion) return;
-
-    // 현재 녹음이 진행 중이면 중지
-    if (recordingState === 'recording') {
-      stopRecording();
-      // 녹음 중지 후 잠시 대기
-      setTimeout(() => proceedToNext(), 500);
-    } else {
-      proceedToNext();
-    }
-  };
-
-  const proceedToNext = () => {
-    // Update session with recording and time spent
-    const updatedQuestions = [...session.questions];
-    updatedQuestions[currentQuestionIndex] = {
-      ...currentQuestion,
-      answer: recordings[currentQuestionIndex] ? 'Voice Recording' : '',
-      timeSpent: 60 - timeLeft
-    };
-
-    if (isLastQuestion) {
-      // Complete the interview
-      const completedSession: InterviewSession = {
-        ...session,
-        questions: updatedQuestions,
-        score: calculateScore(updatedQuestions),
-        feedback: generateFeedback(updatedQuestions),
-        completedAt: new Date().toISOString()
-      };
-      onComplete(completedSession);
-    } else {
-      // Move to next question
-      setCurrentQuestionIndex(prev => prev + 1);
-      setTimeLeft(60);
-      setIsTimerActive(false);
-      setRecordingState('idle');
-
-      // 다음 질문 재생과 동시에 녹음 시작
-      setTimeout(() => {
-        playQuestionAndStartRecording(session.questions[currentQuestionIndex + 1].question);
-      }, 1000);
-    }
-  };
-
-  const calculateScore = (questions: any[]) => {
-    // 음성 면접의 경우 녹음이 있는지와 시간 사용량을 기준으로 점수 계산
-    let totalScore = 0;
-    questions.forEach((question, index) => {
-      const hasRecording = recordings[index] !== null && recordings[index] !== undefined;
-      const timeUsed = question.timeSpent;
-
-      if (hasRecording) {
-        totalScore += 70; // 기본 점수
-        if (timeUsed >= 30) totalScore += 20; // 충분한 시간 사용
-        if (timeUsed >= 45) totalScore += 10; // 더 충분한 시간 사용
-      }
-    });
-
-    return Math.min(Math.round(totalScore / questions.length), 100);
-  };
-
-  const generateFeedback = (questions: any[]) => {
-    const recordedCount = recordings.filter(r => r !== null && r !== undefined).length;
-    const avgTime = questions.reduce((sum, q) => sum + q.timeSpent, 0) / questions.length;
-
-    return {
-      strengths: [
-        recordedCount === questions.length ? "모든 질문에 음성으로 답변하셨습니다." : `${recordedCount}개 질문에 답변하셨습니다.`,
-        avgTime >= 45 ? "충분한 시간을 활용해 답변하셨습니다." : "답변 시간 관리를 잘 하셨습니다."
-      ],
-      improvements: [
-        recordedCount < questions.length ? "일부 질문에서 답변을 완료하지 못했습니다." : "",
-        avgTime < 30 ? "더 구체적이고 상세한 답변을 해보세요." : ""
-      ].filter(Boolean),
-      suggestions: [
-        "음성 면접에서는 명확한 발음과 적절한 속도로 답변하는 것이 중요합니다.",
-        "실제 면접과 같은 환경에서 더 많은 연습을 해보세요.",
-        "각 질문에 대해 구체적인 사례를 들어 답변해보세요."
-      ]
-    };
-  };
 
   const getQuestionTypeColor = (type: string) => {
     switch (type) {

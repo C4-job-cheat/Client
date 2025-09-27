@@ -5,7 +5,6 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Badge } from './ui/badge';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { PersonaCard } from './PersonaCard';
 import type { Page, Persona, CoverLetter } from '../types';

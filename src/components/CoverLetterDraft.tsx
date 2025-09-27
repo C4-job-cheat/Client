@@ -2,16 +2,15 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { ArrowLeft, Download, FileText, Edit3 } from 'lucide-react';
+import { ArrowLeft, Download, FileText } from 'lucide-react';
 import type { Page, CoverLetter, CoverLetterParagraph } from '../types';
 
 interface CoverLetterDraftProps {
   coverLetter: CoverLetter | null;
   onNavigate: (page: Page) => void;
-  onUpdate: (coverLetter: CoverLetter) => void;
 }
 
-export function CoverLetterDraft({ coverLetter, onNavigate, onUpdate }: CoverLetterDraftProps) {
+export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftProps) {
   const [selectedParagraphId, setSelectedParagraphId] = useState<string | null>(null);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 

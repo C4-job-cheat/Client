@@ -699,7 +699,7 @@ function SidebarMenuSubButton({
   );
 }
 
-export {
+const SidebarExports = {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -725,3 +725,5 @@ export {
   SidebarTrigger,
   useSidebar,
 };
+
+export default SidebarExports;

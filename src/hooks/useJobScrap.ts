@@ -29,8 +29,7 @@ export function useJobScrap() {
   return {
     scrapedJobsByPersona,
     toggleScrap,
-    getScrapedJobs,
-    setScrapedJobsByPersona
+    getScrapedJobs
   };
 }
 

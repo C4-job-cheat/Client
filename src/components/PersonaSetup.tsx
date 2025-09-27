@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { ArrowLeft, ArrowRight, Check, FileText, Upload } from 'lucide-react';
-import type { Page, Persona } from '../types';
+import type { Page, Persona, PersonaCategorySpecific, PersonaEducationInfo, PersonaSkillsInfo } from '../types';
 
 interface PersonaSetupProps {
   onComplete: (persona: Persona) => void;
@@ -13,35 +13,20 @@ interface PersonaSetupProps {
 }
 
 // 5개 질문 기반 데이터 구조
+interface UploadedFileInfo {
+  file: File | null;
+  fileName: string;
+  fileContent: string;
+}
+
 interface NewPersonaFormData {
   id: string;
-  // 기본 질문 (4개)
   jobCategory: string;
   specificJob: string;
-  education: {
-    level: string;
-    school: string;
-    major: string;
-    graduated: boolean;
-  };
-  skills: {
-    techStack: string[];
-    certifications: string[];
-    achievements: string[];
-  };
-  
-  // 파일 업로드 (5번째 질문)
-  uploadedFile: {
-    file: File | null;
-    fileName: string;
-    fileContent: string;
-  };
-  
-  // 카테고리별 특별 필드
-  categorySpecific?: {
-    customJob?: string;
-    [key: string]: any;
-  };
+  education: PersonaEducationInfo;
+  skills: PersonaSkillsInfo;
+  uploadedFile: UploadedFileInfo;
+  categorySpecific?: PersonaCategorySpecific;
 }
 
 // 직군별 직무 매핑 (요청된 카테고리 반영)

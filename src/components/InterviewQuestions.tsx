@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Progress } from './ui/progress';
@@ -14,6 +14,63 @@ interface InterviewQuestionsProps {
   onComplete: (session: InterviewSession) => void;
 }
 
+const calculateInterviewScore = (questions: InterviewSession['questions']) => {
+  let totalScore = 0;
+
+  questions.forEach((q) => {
+    const answerLength = q.answer.trim().length;
+    const timeEfficiency = q.timeSpent > 0 ? Math.min(q.timeSpent / 45, 1) : 0;
+
+    let questionScore = 0;
+
+    if (answerLength > 50) questionScore += 30;
+    if (answerLength > 100) questionScore += 20;
+    if (timeEfficiency > 0.5) questionScore += 25;
+    if (q.answer.includes('경험') || q.answer.includes('프로젝트')) questionScore += 15;
+    if (q.answer.includes('배우') || q.answer.includes('성장')) questionScore += 10;
+
+    totalScore += Math.min(questionScore, 100);
+  });
+
+  return Math.round(totalScore / questions.length);
+};
+
+const generateInterviewFeedback = (questions: InterviewSession['questions']) => {
+  const avgAnswerLength = questions.reduce((sum, q) => sum + q.answer.length, 0) / questions.length;
+  const avgTimeSpent = questions.reduce((sum, q) => sum + q.timeSpent, 0) / questions.length;
+
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+  const suggestions: string[] = [];
+
+  if (avgAnswerLength > 100) {
+    strengths.push('답변이 충분히 구체적이고 상세합니다');
+  } else {
+    improvements.push('답변을 더 구체적으로 작성해보세요');
+  }
+
+  if (avgTimeSpent > 30 && avgTimeSpent < 50) {
+    strengths.push('시간 관리가 우수합니다');
+  } else if (avgTimeSpent < 20) {
+    improvements.push('좀 더 충분히 생각하고 답변해보세요');
+  } else {
+    improvements.push('간결하게 답변하는 연습이 필요합니다');
+  }
+
+  const experienceCount = questions.filter((q) => q.answer.includes('경험') || q.answer.includes('프로젝트')).length;
+
+  if (experienceCount > questions.length / 2) {
+    strengths.push('구체적인 경험을 잘 활용하여 답변합니다');
+  } else {
+    suggestions.push('구체적인 경험과 사례를 더 많이 활용해보세요');
+  }
+
+  suggestions.push('STAR 기법(Situation, Task, Action, Result)을 활용해보세요');
+  suggestions.push('답변 시 회사와 직무에 대한 관심을 더 표현해보세요');
+
+  return { strengths, improvements, suggestions };
+};
+
 export function InterviewQuestions({ session, onNavigate, onComplete }: InterviewQuestionsProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -27,13 +84,49 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
     setAnswers(new Array(session.questions.length).fill(''));
   }, [session]);
 
+  const hasSession = session !== null;
+  const currentQuestion = hasSession ? session.questions[currentQuestionIndex] : null;
+  const isLastQuestion = hasSession ? currentQuestionIndex === session.questions.length - 1 : false;
+  const progress = hasSession ? ((currentQuestionIndex + 1) / session.questions.length) * 100 : 0;
+
+  const handleNextQuestion = useCallback(() => {
+    if (!session || !currentQuestion) return;
+
+    const updatedAnswers = [...answers];
+    updatedAnswers[currentQuestionIndex] = currentAnswer;
+    setAnswers(updatedAnswers);
+
+    const updatedQuestions = [...session.questions];
+    updatedQuestions[currentQuestionIndex] = {
+      ...currentQuestion,
+      answer: currentAnswer,
+      timeSpent: 60 - timeLeft,
+    };
+
+    if (isLastQuestion) {
+      const completedSession: InterviewSession = {
+        ...session,
+        questions: updatedQuestions,
+        score: calculateInterviewScore(updatedQuestions),
+        feedback: generateInterviewFeedback(updatedQuestions),
+        completedAt: new Date().toISOString(),
+      };
+      onComplete(completedSession);
+    } else {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setCurrentAnswer('');
+      setTimeLeft(60);
+      setIsTimerActive(true);
+    }
+  }, [answers, currentAnswer, currentQuestion, currentQuestionIndex, isLastQuestion, onComplete, session, timeLeft]);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
-    
+
     if (isTimerActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-        setTotalElapsedTime(prev => prev + 1);
+        setTimeLeft((prev) => prev - 1);
+        setTotalElapsedTime((prev) => prev + 1);
       }, 1000);
     } else if (timeLeft === 0) {
       handleNextQuestion();
@@ -44,7 +137,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
         clearInterval(interval);
       }
     };
-  }, [timeLeft, isTimerActive]);
+  }, [handleNextQuestion, isTimerActive, timeLeft]);
 
   if (!session) {
     return (
@@ -59,104 +152,6 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
       </div>
     );
   }
-
-  const currentQuestion = session.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / session.questions.length) * 100;
-  const isLastQuestion = currentQuestionIndex === session.questions.length - 1;
-
-  const handleNextQuestion = () => {
-    if (!currentQuestion) return;
-
-    // Save current answer
-    const updatedAnswers = [...answers];
-    updatedAnswers[currentQuestionIndex] = currentAnswer;
-    setAnswers(updatedAnswers);
-
-    // Update session with answer and time spent
-    const updatedQuestions = [...session.questions];
-    updatedQuestions[currentQuestionIndex] = {
-      ...currentQuestion,
-      answer: currentAnswer,
-      timeSpent: 60 - timeLeft
-    };
-
-    if (isLastQuestion) {
-      // Complete the interview
-      const completedSession: InterviewSession = {
-        ...session,
-        questions: updatedQuestions,
-        score: calculateScore(updatedQuestions),
-        feedback: generateFeedback(updatedQuestions),
-        completedAt: new Date().toISOString()
-      };
-      onComplete(completedSession);
-    } else {
-      // Move to next question
-      setCurrentQuestionIndex(prev => prev + 1);
-      setCurrentAnswer('');
-      setTimeLeft(60);
-      setIsTimerActive(true);
-    }
-  };
-
-  const calculateScore = (questions: typeof session.questions) => {
-    let totalScore = 0;
-    
-    questions.forEach(q => {
-      const answerLength = q.answer.trim().length;
-      const timeEfficiency = q.timeSpent > 0 ? Math.min(q.timeSpent / 45, 1) : 0; // Optimal time around 45 seconds
-      
-      let questionScore = 0;
-      
-      if (answerLength > 50) questionScore += 30; // Content length
-      if (answerLength > 100) questionScore += 20; // Good detail
-      if (timeEfficiency > 0.5) questionScore += 25; // Time management
-      if (q.answer.includes('경험') || q.answer.includes('프로젝트')) questionScore += 15; // Experience mention
-      if (q.answer.includes('배우') || q.answer.includes('성장')) questionScore += 10; // Growth mindset
-      
-      totalScore += Math.min(questionScore, 100);
-    });
-    
-    return Math.round(totalScore / questions.length);
-  };
-
-  const generateFeedback = (questions: typeof session.questions) => {
-    const avgAnswerLength = questions.reduce((sum, q) => sum + q.answer.length, 0) / questions.length;
-    const avgTimeSpent = questions.reduce((sum, q) => sum + q.timeSpent, 0) / questions.length;
-    
-    const strengths = [];
-    const improvements = [];
-    const suggestions = [];
-    
-    if (avgAnswerLength > 100) {
-      strengths.push('답변이 충분히 구체적이고 상세합니다');
-    } else {
-      improvements.push('답변을 더 구체적으로 작성해보세요');
-    }
-    
-    if (avgTimeSpent > 30 && avgTimeSpent < 50) {
-      strengths.push('시간 관리가 우수합니다');
-    } else if (avgTimeSpent < 20) {
-      improvements.push('좀 더 충분히 생각하고 답변해보세요');
-    } else {
-      improvements.push('간결하게 답변하는 연습이 필요합니다');
-    }
-    
-    const experienceCount = questions.filter(q => 
-      q.answer.includes('경험') || q.answer.includes('프로젝트')
-    ).length;
-    
-    if (experienceCount > questions.length / 2) {
-      strengths.push('구체적인 경험을 잘 활용하여 답변합니다');
-    } else {
-      suggestions.push('구체적인 경험과 사례를 더 많이 활용해보세요');
-    }
-    
-    suggestions.push('STAR 기법(Situation, Task, Action, Result)을 활용해보세요');
-    suggestions.push('답변 시 회사와 직무에 대한 관심을 더 표현해보세요');
-    
-    return { strengths, improvements, suggestions };
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

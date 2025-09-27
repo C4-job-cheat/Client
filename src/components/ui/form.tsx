@@ -156,7 +156,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-export {
+const FormExports = {
   useFormField,
   Form,
   FormItem,
@@ -166,3 +166,5 @@ export {
   FormMessage,
   FormField,
 };
+
+export default FormExports;

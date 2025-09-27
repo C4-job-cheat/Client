@@ -11,18 +11,39 @@ interface PersonaCardProps {
 }
 
 export function PersonaCard({ persona, className = '', compact = false, expanded = false }: PersonaCardProps) {
-  // 주요 강점 추출 (기술 스택과 자격증 통합)
-  const getMainStrengths = () => {
-    const techStack = persona.categorySpecific?.skills?.techStack || [];
-    const certifications = persona.certifications || [];
-    
-    // 기술 스택과 자격증을 통합하여 표시
-    const allSkills = [...techStack, ...certifications];
-    return allSkills.slice(0, 3);
-  };
-
-  const mainStrengths = getMainStrengths();
   const specificJob = persona.categorySpecific?.specificJob || persona.jobCategory;
+  const techStack = persona.categorySpecific?.skills?.techStack ?? [];
+  const certifications = persona.certifications ?? [];
+
+  const renderBadges = (
+    items: string[],
+    limit: number,
+    emptyLabel: string,
+    variant: 'outline' | 'secondary' = 'outline',
+  ) => {
+    if (!items.length) {
+      return <span className="text-xs text-gray-400">{emptyLabel}</span>;
+    }
+
+    return (
+      <>
+        {items.slice(0, limit).map((item, index) => (
+          <Badge
+            key={`${item}-${index}`}
+            variant={variant}
+            className="text-xs"
+          >
+            {item}
+          </Badge>
+        ))}
+        {items.length > limit && (
+          <span className="px-2 py-0.5 rounded-md text-xs bg-gray-50 text-gray-700 border border-gray-200">
+            +{items.length - limit}
+          </span>
+        )}
+      </>
+    );
+  };
 
   if (compact) {
     return (
@@ -85,35 +106,27 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
             </div>
 
             {/* 기술 스택 */}
-            {persona.categorySpecific?.skills?.techStack && persona.categorySpecific.skills.techStack.length > 0 && (
+            {techStack.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Award className="h-5 w-5 text-gray-400" />
                   <h4 className="font-semibold text-gray-900 lg:text-lg">기술 스택</h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {persona.categorySpecific.skills.techStack.map((tech: string, index: number) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {tech}
-                    </Badge>
-                  ))}
+                  {renderBadges(techStack, techStack.length, '선택 없음', 'secondary')}
                 </div>
               </div>
             )}
 
             {/* 자격증 */}
-            {persona.certifications && persona.certifications.length > 0 && (
+            {certifications.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Award className="h-5 w-5 text-gray-400" />
                   <h4 className="font-semibold text-gray-900 lg:text-lg">보유 자격증</h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {persona.certifications.map((cert, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {cert}
-                    </Badge>
-                  ))}
+                  {renderBadges(certifications, certifications.length, '선택 없음')}
                 </div>
               </div>
             )}
@@ -195,32 +208,14 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
         <div>
           <p className="text-xs text-gray-500 mb-0.5">보유 기술 스택</p>
           <div className="flex flex-wrap gap-1.5">
-            {persona.categorySpecific?.skills?.techStack && persona.categorySpecific.skills.techStack.length > 0 ? (
-              persona.categorySpecific.skills.techStack.slice(0, 8).map((tech: string, index: number) => (
-                <span key={index} className="px-2 py-0.5 rounded-md text-xs bg-gray-100 text-black border border-gray-300">{tech}</span>
-              ))
-            ) : (
-              <span className="text-xs text-gray-400">선택 없음</span>
-            )}
-            {persona.categorySpecific?.skills?.techStack && persona.categorySpecific.skills.techStack.length > 8 && (
-              <span className="px-2 py-0.5 rounded-md text-xs bg-gray-50 text-gray-700 border border-gray-200">+{persona.categorySpecific.skills.techStack.length - 8}</span>
-            )}
+                {renderBadges(techStack, 8, '선택 없음')}
           </div>
         </div>
 
         <div>
           <p className="text-xs text-gray-500 mb-0.5">보유 자격증</p>
           <div className="flex flex-wrap gap-1.5">
-            {persona.certifications && persona.certifications.length > 0 ? (
-              persona.certifications.slice(0, 6).map((cert, index) => (
-                <span key={index} className="px-2 py-0.5 rounded-md text-xs bg-gray-100 text-gray-700 border border-gray-200">{cert}</span>
-              ))
-            ) : (
-              <span className="text-xs text-gray-400">선택 없음</span>
-            )}
-            {persona.certifications && persona.certifications.length > 6 && (
-              <span className="px-2 py-0.5 rounded-md text-xs bg-gray-50 text-gray-700 border border-gray-200">+{persona.certifications.length - 6}</span>
-            )}
+                {renderBadges(certifications, 6, '선택 없음')}
           </div>
         </div>
       </div>

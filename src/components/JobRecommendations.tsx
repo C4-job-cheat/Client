@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { ArrowLeft, Bookmark, Clock, Info, Brain, Target, Zap, BarChart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Bookmark, Clock, Info, Brain, Target, Zap, BarChart } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { PersonaCardHeader } from './PersonaCardHeader';
 import type { Page, Persona, Job } from '../types';
@@ -117,7 +117,7 @@ const mockJobs: Job[] = [
 ];
 
 // 레이더 차트 컴포넌트
-function CapabilityRadarChart({ onCapabilityClick }: { onCapabilityClick: (index: number) => void }) {
+function CapabilityRadarChart() {
   const personaCapabilities = [
     { subject: '직무 전문성', A: 88, fullMark: 100 },
     { subject: '성장 잠재력', A: 90, fullMark: 100 },
@@ -125,14 +125,6 @@ function CapabilityRadarChart({ onCapabilityClick }: { onCapabilityClick: (index
     { subject: '협업 능력', A: 78, fullMark: 100 },
     { subject: '적응력', A: 92, fullMark: 100 }
   ];
-
-  const capabilityDescriptions = {
-    '직무 전문성': '학력, 자격증, 기술 스택 등 직무 수행에 필요한 전문 지식과 기술',
-    '성장 잠재력': '새로운 기술 학습 의욕, 커리어 목표 설정 및 달성 의지',
-    '문제 해결력': '어려운 상황에서의 문제 해결 경험과 논리적 사고 능력',
-    '협업 능력': '팀워크, 소통 능력, 갈등 해결 및 설득 능력',
-    '적응력': '변화하는 환경과 새로운 기술에 대한 적응 및 학습 능력'
-  };
 
   return (
     <div className="space-y-4">
@@ -157,14 +149,7 @@ function CapabilityRadarChart({ onCapabilityClick }: { onCapabilityClick: (index
             <RadarChart
               data={personaCapabilities}
               onClick={(data) => {
-                if (data && data.activeLabel) {
-                  const capabilityIndex = personaCapabilities.findIndex(
-                    cap => cap.subject === data.activeLabel
-                  );
-                  if (capabilityIndex !== -1) {
-                    onCapabilityClick(capabilityIndex);
-                  }
-                }
+                void data;
               }}
             >
               <PolarGrid gridType="circle" />
@@ -175,7 +160,7 @@ function CapabilityRadarChart({ onCapabilityClick }: { onCapabilityClick: (index
               />
               <PolarRadiusAxis angle={90} domain={[0, 100]} className="text-xs" />
               <RechartsTooltip
-                formatter={(value: any) => [`${value}/100`, '점수']}
+                formatter={(value: number) => [`${value}/100`, '점수']}
                 contentStyle={{
                   background: 'rgba(255, 255, 255, 0.95)',
                   border: '1px solid rgba(59, 130, 246, 0.2)',
@@ -389,13 +374,12 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
   const [displayedJobs, setDisplayedJobs] = useState<Job[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [selectedCapability, setSelectedCapability] = useState(0); // 선택된 역량 인덱스
 
   useEffect(() => {
     setDisplayedJobs(mockJobs.slice(0, 4));
   }, []);
 
-  const loadMoreJobs = () => {
+  const loadMoreJobs = useCallback(() => {
     if (loading) return;
     
     setLoading(true);
@@ -411,7 +395,7 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
       setPage(nextPage);
       setLoading(false);
     }, 1000);
-  };
+  }, [loading, page]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -426,7 +410,7 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [displayedJobs.length, loading]);
+  }, [displayedJobs.length, loadMoreJobs]);
 
   if (!currentPersona) {
     return (

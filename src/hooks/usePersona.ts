@@ -26,8 +26,6 @@ export function usePersona() {
     currentPersona,
     addPersona,
     deletePersona,
-    selectPersona,
-    setPersonas,
-    setCurrentPersona
+    selectPersona
   };
 }
