@@ -1,0 +1,308 @@
+---
+globs: src/components/ui/**/*
+description: shadcn/ui 컴포넌트 사용 및 확장 가이드
+---
+
+# shadcn/ui 컴포넌트 가이드
+
+## 컴포넌트 구조 패턴
+
+### 1. 기본 컴포넌트 구조
+`src/components/ui/` 디렉토리의 모든 컴포넌트는 shadcn/ui 패턴을 따릅니다.
+
+```typescript
+// ✅ 좋은 예 - 표준 shadcn/ui 컴포넌트 구조
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+```
+
+### 2. Variant 확장 패턴
+```typescript
+// ✅ 좋은 예 - 기존 variant 확장
+const extendedButtonVariants = cva(
+  buttonVariants({}), // 기본 스타일 상속
+  {
+    variants: {
+      variant: {
+        ...buttonVariants.variants?.variant, // 기존 variant 유지
+        brand: "bg-brand-primary text-white hover:bg-brand-secondary",
+        success: "bg-green-600 text-white hover:bg-green-700",
+      },
+    },
+  }
+)
+```
+
+## 컴포넌트 조합 패턴
+
+### 1. 복합 컴포넌트 구조
+```typescript
+// ✅ 좋은 예 - Card 컴포넌트 조합
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+Card.displayName = "Card"
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+))
+CardHeader.displayName = "CardHeader"
+
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+))
+CardTitle.displayName = "CardTitle"
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
+```
+
+### 2. Form 컴포넌트 패턴
+```typescript
+// ✅ 좋은 예 - Form 컴포넌트와 react-hook-form 통합
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+
+const formSchema = z.object({
+  username: z.string().min(2, {
+    message: "사용자명은 최소 2글자여야 합니다.",
+  }),
+})
+
+type FormData = z.infer<typeof formSchema>
+
+export function ProfileForm() {
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+    },
+  })
+
+  function onSubmit(values: FormData) {
+    console.log(values)
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>사용자명</FormLabel>
+              <FormControl>
+                <Input placeholder="shadcn" {...field} />
+              </FormControl>
+              <FormDescription>
+                이것은 공개 프로필에 표시될 이름입니다.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">제출</Button>
+      </form>
+    </Form>
+  )
+}
+```
+
+## 접근성 고려사항
+
+### 1. ARIA 속성 사용
+```typescript
+// ✅ 좋은 예 - 접근성 속성 포함
+const Dialog = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <DialogPrimitive.Root {...props}>
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <X className="h-4 w-4" />
+          <span className="sr-only">닫기</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  </DialogPrimitive.Root>
+))
+```
+
+### 2. 키보드 네비게이션
+```typescript
+// ✅ 좋은 예 - 키보드 이벤트 처리
+const handleKeyDown = (event: React.KeyboardEvent) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    onClick?.();
+  }
+};
+
+return (
+  <div
+    role="button"
+    tabIndex={0}
+    onKeyDown={handleKeyDown}
+    onClick={onClick}
+    className={cn("clickable-element", className)}
+  >
+    {children}
+  </div>
+);
+```
+
+## 테마 및 다크모드 지원
+
+### 1. CSS 변수 활용
+```typescript
+// ✅ 좋은 예 - CSS 변수 기반 테마
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+```
+
+### 2. 다크모드 클래스
+```typescript
+// ✅ 좋은 예 - 다크모드 지원 클래스
+const className = cn(
+  "bg-white dark:bg-gray-900",
+  "text-gray-900 dark:text-white",
+  "border-gray-200 dark:border-gray-700"
+)
+```
+
+## 성능 최적화
+
+### 1. forwardRef 사용
+모든 DOM 요소를 직접 렌더링하는 컴포넌트는 `forwardRef`를 사용합니다.
+
+```typescript
+// ✅ 좋은 예 - forwardRef 사용
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Input.displayName = "Input"
+```
+
+### 2. 메모이제이션 고려사항
+```typescript
+// ✅ 좋은 예 - 필요한 경우에만 메모이제이션
+const ExpensiveComponent = React.memo(({ data }: { data: ComplexData }) => {
+  const processedData = useMemo(() => {
+    return expensiveCalculation(data);
+  }, [data]);
+
+  return <div>{processedData}</div>;
+});
+```

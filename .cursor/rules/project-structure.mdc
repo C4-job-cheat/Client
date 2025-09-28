@@ -1,0 +1,57 @@
+---
+alwaysApply: true
+description: 프로젝트 구조 및 아키텍처 가이드
+---
+
+# 프로젝트 구조 가이드
+
+이 프로젝트는 취업 지원 플랫폼으로, React + TypeScript + Vite + Tailwind CSS 스택을 사용합니다.
+
+## 핵심 파일 구조
+
+### 진입점
+- [main.tsx](mdc:src/main.tsx): React 앱의 진입점, PersonaProvider로 감싸짐
+- [App.tsx](mdc:src/App.tsx): 메인 라우팅 및 상태 관리 컴포넌트
+- [index.html](mdc:index.html): HTML 템플릿
+
+### 타입 정의
+- [src/types/index.ts](mdc:src/types/index.ts): 모든 TypeScript 타입 정의가 중앙화되어 있음
+  - Page 타입: 라우팅에 사용되는 페이지 식별자
+  - PersonaData, PersonaResponse: 페르소나 관련 타입
+  - CoverLetter, InterviewSession: 자기소개서 및 면접 관련 타입
+  - API 응답 타입들: 서버와의 통신에 사용
+
+### 컴포넌트 구조
+- `src/components/`: 페이지 레벨 컴포넌트들
+  - [Home.tsx](mdc:src/components/Home.tsx): 메인 홈페이지
+  - [PersonaSetup.tsx](mdc:src/components/PersonaSetup.tsx): 페르소나 설정
+  - [JobRecommendations.tsx](mdc:src/components/JobRecommendations.tsx): 채용공고 추천
+  - [CoverLetterHub.tsx](mdc:src/components/CoverLetterHub.tsx): 자기소개서 관리
+  - [InterviewHub.tsx](mdc:src/components/InterviewHub.tsx): 면접 관리
+- `src/components/ui/`: 재사용 가능한 UI 컴포넌트 (shadcn/ui 기반)
+- `src/components/figma/`: 피그마 디자인 시스템 컴포넌트
+
+### 상태 관리
+- [src/context/AuthContext.tsx](mdc:src/context/AuthContext.tsx): 인증 상태 관리
+- [src/hooks/usePersona.ts](mdc:src/hooks/usePersona.ts): 페르소나 관련 커스텀 훅
+- [src/hooks/useJobScrap.ts](mdc:src/hooks/useJobScrap.ts): 채용공고 스크랩 관련 훅
+
+### API 통신
+- [src/api/apiClient.ts](mdc:src/api/apiClient.ts): Axios 기반 API 클라이언트
+- [src/firebase.ts](mdc:src/firebase.ts): Firebase 설정
+
+### 스타일링
+- [src/styles/globals.css](mdc:src/styles/globals.css): 전역 CSS 스타일
+- [tailwind.config.js](mdc:tailwind.config.js): Tailwind CSS 설정
+- [postcss.config.js](mdc:postcss.config.js): PostCSS 설정
+
+## 주요 기능 모듈
+
+1. **페르소나 관리**: 사용자 프로필 및 역량 분석
+2. **채용공고 추천**: AI 기반 맞춤형 공고 추천
+3. **자기소개서 생성**: AI 기반 자기소개서 작성 도구
+4. **면접 연습**: 텍스트/음성 면접 시뮬레이션
+5. **공고 스크랩**: 관심 공고 저장 및 관리
+
+## 라우팅 시스템
+App.tsx에서 중앙화된 페이지 상태 관리로 SPA 라우팅을 구현합니다. 각 페이지는 Page 타입으로 정의되어 있으며, navigateTo 함수를 통해 페이지 간 이동이 이루어집니다.

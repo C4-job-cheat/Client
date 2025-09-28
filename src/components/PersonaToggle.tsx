@@ -8,42 +8,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { ChevronDown, Plus, User, Trash2 } from 'lucide-react';
-import type { Page, Persona } from '../types';
+import { ChevronDown, Plus, User } from 'lucide-react';
+import type { Page, PersonaResponse } from '../types';
 
 interface PersonaToggleProps {
-  currentPersona: Persona | null;
-  personas: Persona[];
-  onPersonaSelect: (persona: Persona) => void;
+  currentPersona: PersonaResponse | null;
+  personas: PersonaResponse[];
+  onPersonaSelect: (persona: PersonaResponse) => void;
   onNavigate: (page: Page, source?: 'cover-letter' | 'interview' | 'scraped-jobs' | 'general') => void;
-  onPersonaDelete?: (personaId: string) => void;
 }
 
 export function PersonaToggle({ 
   currentPersona, 
   personas, 
   onPersonaSelect, 
-  onNavigate,
-  onPersonaDelete 
+  onNavigate
 }: PersonaToggleProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handlePersonaDelete = (e: React.MouseEvent, personaId: string) => {
-    e.stopPropagation();
-    if (confirm('이 페르소나를 삭제하시겠습니까?')) {
-      onPersonaDelete?.(personaId);
-      // 삭제된 페르소나가 현재 선택된 페르소나라면 다른 페르소나로 변경
-      if (currentPersona?.id === personaId) {
-        const remainingPersonas = personas.filter(p => p.id !== personaId);
-        if (remainingPersonas.length > 0) {
-          onPersonaSelect(remainingPersonas[0]);
-        }
-      }
-      setIsOpen(false);
-    }
-  };
-
-  const handlePersonaSelect = (persona: Persona) => {
+  const handlePersonaSelect = (persona: PersonaResponse) => {
     onPersonaSelect(persona);
     setIsOpen(false);
   };
@@ -63,7 +46,7 @@ export function PersonaToggle({
         >
           <User className="h-4 w-4" />
           <span className="truncate">
-            {currentPersona ? currentPersona.jobCategory : '페르소나 생성'}
+            {currentPersona ? currentPersona.job_category : '페르소나 생성'}
           </span>
           <ChevronDown className="h-3 w-3" />
         </Button>
@@ -89,44 +72,30 @@ export function PersonaToggle({
         {/* 기존 페르소나 목록 */}
         {personas.map((persona) => (
           <DropdownMenuItem
-            key={persona.id}
+            key={persona.persona_id}
             onClick={() => handlePersonaSelect(persona)}
             className="flex items-center justify-between p-3"
           >
             <div className="flex items-center space-x-2 flex-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                currentPersona?.id === persona.id
+                currentPersona?.persona_id === persona.persona_id
                   ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-600'
               }`}>
                 <User className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{persona.jobCategory}</div>
-                <div className="text-xs text-gray-500 truncate">
-                  {persona.experience.hasExperience
-                    ? `${persona.experience.years}년 경력`
-                    : '신입'
-                  } • {persona.education.level}
-                </div>
+                <div className="font-medium truncate">{persona.job_category}</div>
+                <div className="text-xs text-gray-500 truncate">{persona.job_role ?? '직무 미지정'}</div>
               </div>
             </div>
             
-            {currentPersona?.id === persona.id && (
+            {currentPersona?.persona_id === persona.persona_id && (
               <Badge variant="secondary" className="text-xs ml-2">
                 현재
               </Badge>
             )}
 
-            {/* 삭제 버튼 */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => handlePersonaDelete(e, persona.id)}
-              className="h-6 w-6 p-0 ml-2 text-gray-400 hover:text-red-600"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
           </DropdownMenuItem>
         ))}
 

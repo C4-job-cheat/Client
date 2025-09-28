@@ -14,31 +14,8 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
   const [selectedParagraphId, setSelectedParagraphId] = useState<string | null>(null);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
-  // 임시 더미 데이터 (서버에서 받아올 데이터)
-  const dummyParagraphs: CoverLetterParagraph[] = [
-    {
-      id: '1',
-      text: '안녕하세요. 저는 컴퓨터공학을 전공하며 풀스택 개발자로 성장하고자 하는 김개발입니다. 귀하의 회사에서 제공하는 혁신적인 기술 환경과 성장 기회에 깊은 관심을 가지고 지원하게 되었습니다.',
-      explanation: '도입부에서는 지원자의 기본 정보와 지원 동기를 명확히 제시했습니다. 회사의 특성을 언급하여 지원 의지를 구체적으로 표현했습니다.'
-    },
-    {
-      id: '2',
-      text: '대학 재학 중 다양한 프로젝트를 통해 React, Node.js, Python 등의 기술 스택을 활용한 웹 애플리케이션 개발 경험을 쌓았습니다. 특히 팀 프로젝트에서 프론트엔드와 백엔드를 모두 담당하며 전체적인 서비스 구조를 이해할 수 있었습니다.',
-      explanation: '페르소나에서 설정한 기술 스택을 바탕으로 구체적인 경험을 제시했습니다. 풀스택 개발자로서의 역량을 강조하여 직무 적합성을 어필했습니다.'
-    },
-    {
-      id: '3',
-      text: '또한 지속적인 학습을 통해 최신 기술 트렌드를 파악하고 적용하려 노력하고 있습니다. 개인 블로그를 운영하며 학습한 내용을 정리하고 다른 개발자들과 지식을 공유하는 활동도 하고 있습니다.',
-      explanation: '학습 능력과 지식 공유 의지를 통해 성장 잠재력을 강조했습니다. 개발자로서 중요한 커뮤니케이션 능력도 함께 어필했습니다.'
-    },
-    {
-      id: '4',
-      text: '귀하의 회사에서 더 많은 경험을 쌓고 전문성을 높여 회사의 성장에 기여할 수 있는 개발자가 되고 싶습니다. 감사합니다.',
-      explanation: '마무리에서는 회사에 대한 기여 의지와 성장 목표를 명확히 제시하여 긍정적인 인상을 남기도록 구성했습니다.'
-    }
-  ];
-
-  const paragraphs = coverLetter?.paragraphs || dummyParagraphs;
+  // 서버 데이터가 있으면 서버 데이터 사용, 없으면 기존 로직 사용
+  const paragraphs = coverLetter?.serverData?.cover_letter || coverLetter?.paragraphs || [];
 
   if (!coverLetter) {
     return (
@@ -59,7 +36,7 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
   };
 
   const handleDownload = () => {
-    const content = paragraphs.map(p => p.text).join('\n\n');
+    const content = paragraphs.map(p => p.paragraph || p.text).join('\n\n');
     const element = document.createElement('a');
     const file = new Blob([content], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
@@ -69,7 +46,7 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
     document.body.removeChild(element);
   };
 
-  const selectedParagraph = paragraphs.find(p => p.id === selectedParagraphId);
+  const selectedParagraph = paragraphs[parseInt(selectedParagraphId || '0')];
 
   return (
     <div className="min-h-screen bg-white">
@@ -128,22 +105,22 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
                 <div className="leading-relaxed text-gray-800 text-base">
                   {paragraphs.map((paragraph, index) => (
                     <span
-                      key={paragraph.id}
-                      onClick={() => handleParagraphClick(paragraph.id)}
+                      key={index}
+                      onClick={() => handleParagraphClick(index.toString())}
                       className={`cursor-pointer transition-all duration-200 ${
-                        selectedParagraphId === paragraph.id
+                        selectedParagraphId === index.toString()
                           ? 'bg-blue-200/70 font-bold text-lg'
                           : 'hover:bg-yellow-200/50'
                       }`}
                     >
-                      <span>{paragraph.text}</span>
+                      <span>{paragraph.paragraph || paragraph.text}</span>
                       {index < paragraphs.length - 1 && ' '}
                     </span>
                   ))}
                 </div>
 
                 <div className="text-xs text-gray-400 text-right mt-8 border-t border-gray-100 pt-4">
-                  총 {paragraphs.reduce((sum, p) => sum + p.text.length, 0)}자
+                  총 {paragraphs.reduce((sum, p) => sum + (p.paragraph || p.text).length, 0)}자
                 </div>
               </div>
             </div>
@@ -172,7 +149,7 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
                 <>
                   <div className="border-b border-gray-200 px-6 py-4">
                     <p className="text-lg font-bold text-gray-900 leading-relaxed italic">
-                      "{selectedParagraph.text}"
+                      "{selectedParagraph.paragraph || selectedParagraph.text}"
                     </p>
                   </div>
 
@@ -180,7 +157,7 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
                     <div>
                       <div className="text-sm text-gray-700 mb-2 font-medium">구성 요소</div>
                       <p className="text-sm text-gray-600 leading-relaxed">
-                        {selectedParagraph.explanation}
+                        {selectedParagraph.reason || selectedParagraph.explanation}
                       </p>
                     </div>
                   </div>

@@ -5,10 +5,10 @@ import { Badge } from './ui/badge';
 import { motion } from 'framer-motion';
 import { Sparkles, CheckCircle, TrendingUp, ArrowRight, Star } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Page, Persona } from '../types';
+import type { Page, PersonaResponse } from '../types';
 
 interface PersonaCompletedProps {
-  persona: Persona;
+  persona: PersonaResponse;
   onNavigate: (page: Page) => void;
   isNewUser?: boolean;
 }
@@ -54,7 +54,7 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
 
     const showNotification = () => {
       const notification = new Notification('페르소나 생성 완료되었습니다!', {
-        body: `${persona.jobCategory} 분야 페르소나가 성공적으로 생성되었습니다. 이제 취업인을 즐겨보세용가리리!`,
+        body: `${persona.job_category} 분야 페르소나가 성공적으로 생성되었습니다. 이제 취업인을 즐겨보세용가리리!`,
         icon: '/favicon.ico', // 앱 아이콘 (public 폴더에 있어야 함)
         tag: 'persona-completed', // 동일한 태그의 알림은 하나만 표시
         requireInteraction: false, // 자동으로 사라지도록 설정
@@ -74,7 +74,7 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
 
     const showToastNotification = () => {
       toast.success('페르소나 생성 완료! 🎉', {
-        description: `${persona.jobCategory} 분야 페르소나가 성공적으로 생성되었습니다. 이제 맞춤 공고를 확인해보세요!`,
+        description: `${persona.job_category} 분야 페르소나가 성공적으로 생성되었습니다. 이제 맞춤 공고를 확인해보세요!`,
         duration: 5000,
         action: {
           label: '공고 보기',
@@ -104,7 +104,7 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
       }
       clearTimeout(stepTimer);
     };
-  }, [currentStep, onNavigate, persona.jobCategory]);
+  }, [currentStep, onNavigate, persona.job_category]);
 
   const steps = [
     {
@@ -165,18 +165,18 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
             <Card className="p-6 lg:p-8 space-y-4 lg:space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 lg:text-lg">직무 분야</h3>
-                <Badge className="bg-blue-600 text-white lg:text-sm lg:px-3 lg:py-1">{persona.jobCategory}</Badge>
+                <Badge className="bg-blue-600 text-white lg:text-sm lg:px-3 lg:py-1">{persona.job_category}</Badge>
               </div>
 
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 lg:text-lg">학력</h3>
-                <span className="text-sm lg:text-base text-gray-600">{persona.education.level}</span>
+                <span className="text-sm lg:text-base text-gray-600">{persona.school_name ?? '학력 정보 없음'}</span>
               </div>
 
-              {persona.experience.hasExperience && (
+              {persona.job_role && (
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 lg:text-lg">경력</h3>
-                  <span className="text-sm lg:text-base text-gray-600">{persona.experience.years}년</span>
+                  <h3 className="font-semibold text-gray-900 lg:text-lg">직무</h3>
+                  <span className="text-sm lg:text-base text-gray-600">{persona.job_role}</span>
                 </div>
               )}
 

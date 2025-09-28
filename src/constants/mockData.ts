@@ -6,7 +6,7 @@ export const MOCK_JOBS: Job[] = [
     id: '1',
     company: '네이버',
     title: '프론트엔드 개발자',
-    field: 'IT/개발',
+    field: 'IT개발·데이터',
     matchScore: 95,
     requirements: {
       expertise: 88,
@@ -58,7 +58,7 @@ export const MOCK_JOBS: Job[] = [
     id: '3',
     company: '쿠팡',
     title: '백엔드 개발자',
-    field: 'IT/개발',
+    field: 'IT개발·데이터',
     matchScore: 92,
     requirements: {
       expertise: 90,
@@ -80,13 +80,4 @@ export const MOCK_JOBS: Job[] = [
     aiReason: '백엔드 개발 경험과 대규모 시스템에 대한 이해가 있으십니다.',
     logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
   }
-];
-
-// Default persona capabilities for radar chart
-export const DEFAULT_PERSONA_CAPABILITIES = [
-  { subject: '직무 전문성', A: 88, fullMark: 100 },
-  { subject: '성장 잠재력', A: 90, fullMark: 100 },
-  { subject: '문제 해결력', A: 85, fullMark: 100 },
-  { subject: '협업 능력', A: 78, fullMark: 100 },
-  { subject: '적응력', A: 92, fullMark: 100 }
 ];

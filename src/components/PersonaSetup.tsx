@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 // Select 관련 컴포넌트는 현재 단계에서 사용하지 않음
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { ArrowLeft, ArrowRight, Check, FileText, Upload } from 'lucide-react';
-import type { Page, Persona, PersonaCategorySpecific, PersonaEducationInfo, PersonaSkillsInfo } from '../types';
+import type { Page, PersonaEducationInfo, PersonaSkillsInfo, PersonaData, PersonaResponse } from '../types';
+import { usePersona } from '../hooks/usePersona';
+import { toast } from 'sonner';
 
 interface PersonaSetupProps {
-  onComplete: (persona: Persona) => void;
+  onComplete: (persona: PersonaResponse) => void;
   onNavigate: (page: Page) => void;
 }
 
@@ -20,13 +22,12 @@ interface UploadedFileInfo {
 }
 
 interface NewPersonaFormData {
-  id: string;
   jobCategory: string;
   specificJob: string;
+  customJob?: string;
   education: PersonaEducationInfo;
   skills: PersonaSkillsInfo;
   uploadedFile: UploadedFileInfo;
-  categorySpecific?: PersonaCategorySpecific;
 }
 
 // 직군별 직무 매핑 (요청된 카테고리 반영)
@@ -39,6 +40,7 @@ const jobCategoryMapping = {
   'PR·커뮤니케이션': ['직접입력'],
   '소프트웨어개발': ['직접입력'],
   '데이터': ['직접입력'],
+  'IT개발·데이터': ['직접입력'],
   '인프라·보안': ['직접입력'],
   '디자인': ['직접입력'],
   'B2B 영업': ['직접입력'],
@@ -80,7 +82,6 @@ const educationLevels = [
   '고등학교', '대학교', '대학원 석사', '대학원 박사'
 ];
 
-// 참고용 전공 목록 (현재는 미사용) - 제거 예정
 
 const techStacks = [
   'JavaScript', 'TypeScript', 'Python', 'Java', 'React', 'Vue.js', 'Angular',
@@ -96,31 +97,29 @@ const certifications = [
 ];
 
 export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
+  const { createPersona, isLoading } = usePersona();
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [formData, setFormData] = useState<NewPersonaFormData>({
-    id: Date.now().toString(),
     jobCategory: '',
     specificJob: '',
+    customJob: '',
     education: {
       level: '',
       school: '',
-      major: '',
-      graduated: true
+      major: ''
     },
     skills: {
       techStack: [],
-      certifications: [],
-      achievements: []
+      certifications: []
     },
     uploadedFile: {
       file: null,
       fileName: '',
       fileContent: ''
-    },
-    categorySpecific: {}
+    }
   });
 
   const totalSteps = 5;
@@ -144,31 +143,55 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
     }
   };
 
-  const handleComplete = () => {
-    // NewPersonaFormData를 기존 Persona 형태로 변환
-    const persona: Persona = {
-      id: formData.id,
-      jobCategory: formData.jobCategory || '기타',
-      experience: { hasExperience: false },
-      education: { 
-        level: formData.education.level,
-        major: formData.education.major 
-      },
-      preferredRegions: [],
-      minSalary: 0,
-      languages: [],
-      workStyle: { location: '', type: '' },
-      certifications: formData.skills.certifications,
-      achievements: formData.skills.achievements.join(', '),
-      categorySpecific: {
-        specificJob: formData.specificJob,
-        education: formData.education,
-        skills: formData.skills,
-        uploadedFile: formData.uploadedFile
-      },
-      description: `${formData.jobCategory} 분야의 ${formData.specificJob} 희망`
-    };
-    onComplete(persona);
+  const personaPayload: PersonaData = useMemo(() => ({
+    job_category: formData.jobCategory,
+    job_role: formData.specificJob === '직접입력'
+      ? formData.customJob
+      : formData.specificJob,
+    school_name: formData.education.school,
+    major: formData.education.major,
+    skills: formData.skills.techStack,
+    certifications: formData.skills.certifications,
+    html_file: formData.uploadedFile.file || undefined,
+  }), [formData]);
+
+  const handleComplete = async () => {
+    if (!formData.jobCategory) {
+      alert('희망 직군을 선택해주세요.');
+      return;
+    }
+
+    if (!formData.uploadedFile.file) {
+      alert('HTML 파일을 업로드해주세요.');
+      return;
+    }
+
+    try {
+      const persona = await createPersona(personaPayload);
+      
+      // 페르소나 ID 확인
+      if (!persona || !persona.persona_id) {
+        toast.error('페르소나 생성 실패', {
+          description: '서버에서 페르소나 ID를 반환하지 않았습니다.',
+          duration: 5000,
+        });
+        return;
+      }
+      
+      // 테스트용 토스트 - 페르소나 ID 확인
+      toast.success(`페르소나 생성 성공!`, {
+        description: `ID: ${persona.persona_id}`,
+        duration: 5000,
+      });
+      
+      onComplete(persona);
+    } catch (err) {
+      console.error('❌ 페르소나 생성 실패:', err);
+      toast.error('페르소나 생성 실패', {
+        description: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
+        duration: 5000,
+      });
+    }
   };
 
   const processFile = (file: File) => {
@@ -303,12 +326,9 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                 {formData.specificJob === '직접입력' && (
                   <Input
                     placeholder="희망 직무를 직접 입력해주세요"
-                    value={formData.categorySpecific?.customJob || ''}
+                    value={formData.customJob || ''}
                     onChange={(e) => updateFormData({
-                      categorySpecific: {
-                        ...formData.categorySpecific,
-                        customJob: e.target.value
-                      }
+                      customJob: e.target.value
                     })}
                     className="mt-3 lg:mt-4 lg:text-lg lg:h-12"
                   />
@@ -604,6 +624,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               size="sm"
               onClick={() => onNavigate('home')}
               className="font-heading flex items-center space-x-2 text-neutral-600 hover:text-neutral-900"
+              disabled={isLoading}
             >
               <ArrowLeft className="h-4 w-4" />
               <span>홈으로</span>
@@ -705,10 +726,11 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                       {currentStep === totalSteps - 1 ? (
                         <button
                           onClick={handleComplete}
-                          className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors py-2"
+                          className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors py-2 disabled:text-gray-400"
+                          disabled={isLoading}
                         >
-                          <span>완료</span>
-                          <Check className="h-5 w-5" />
+                          <span>{isLoading ? '생성 중...' : '완료'}</span>
+                          {!isLoading && <Check className="h-5 w-5" />}
                         </button>
                       ) : (
                         <button

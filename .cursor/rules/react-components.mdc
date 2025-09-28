@@ -1,0 +1,236 @@
+---
+globs: *.tsx,src/components/**/*
+description: React 컴포넌트 작성 및 구조 가이드
+---
+
+# React 컴포넌트 작성 가이드
+
+## 컴포넌트 구조 패턴
+
+### 1. 페이지 레벨 컴포넌트
+페이지 레벨 컴포넌트는 [App.tsx](mdc:src/App.tsx)의 라우팅 시스템과 연동됩니다.
+
+```typescript
+// ✅ 좋은 예 - 페이지 컴포넌트 구조
+interface HomeProps {
+  currentPersona: PersonaResponse | null;
+  personas: PersonaResponse[];
+  scrapedJobs: Set<string>;
+  onNavigate: (page: Page, source?: NavigationSource) => void;
+  onPersonaSelect: (persona: PersonaResponse) => void;
+  onJobSelect: (jobId: string) => void;
+  onToggleScrap: (jobId: string) => void;
+}
+
+export function Home({
+  currentPersona,
+  personas,
+  scrapedJobs,
+  onNavigate,
+  onPersonaSelect,
+  onJobSelect,
+  onToggleScrap
+}: HomeProps) {
+  // 컴포넌트 로직
+}
+```
+
+### 2. UI 컴포넌트 (shadcn/ui 기반)
+`src/components/ui/` 디렉토리의 재사용 가능한 컴포넌트들은 shadcn/ui 패턴을 따릅니다.
+
+```typescript
+// ✅ 좋은 예 - UI 컴포넌트 구조
+import { cn } from "@/lib/utils"
+import { cva, type VariantProps } from "class-variance-authority"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+```
+
+## 상태 관리 패턴
+
+### 1. 로컬 상태 관리
+```typescript
+// ✅ 좋은 예 - 명확한 초기값과 타입
+const [currentPage, setCurrentPage] = useState<Page>('home');
+const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
+const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
+// ❌ 나쁜 예 - 타입이 불명확
+const [currentPage, setCurrentPage] = useState('home');
+const [coverLetters, setCoverLetters] = useState([]);
+```
+
+### 2. 커스텀 훅 활용
+- [src/hooks/usePersona.ts](mdc:src/hooks/usePersona.ts): 페르소나 관련 로직
+- [src/hooks/useJobScrap.ts](mdc:src/hooks/useJobScrap.ts): 채용공고 스크랩 로직
+
+```typescript
+// ✅ 좋은 예 - 커스텀 훅 사용
+const {
+  personas,
+  currentPersona,
+  createPersona,
+  selectPersona,
+} = usePersona();
+
+const {
+  toggleScrap,
+  getScrapedJobs
+} = useJobScrap();
+```
+
+### 3. Context API 사용
+- [src/context/AuthContext.tsx](mdc:src/context/AuthContext.tsx): 인증 상태 관리
+- 전역 상태가 필요한 경우에만 Context 사용
+
+## 이벤트 핸들링 패턴
+
+### 1. 콜백 함수 네이밍
+```typescript
+// ✅ 좋은 예 - 명확한 네이밍
+const handlePersonaComplete = async (persona: PersonaResponse) => {
+  setCurrentPage("persona-completed");
+  return persona;
+};
+
+const handleJobSelect = (jobId: string) => {
+  setSelectedJobId(jobId);
+  setCurrentPage("job-detail");
+};
+
+const handleToggleScrap = (jobId: string) => {
+  if (!currentPersona) return;
+  toggleScrap(jobId, currentPersona.persona_id, currentPersona.user_id);
+};
+```
+
+### 2. 조건부 로직 처리
+```typescript
+// ✅ 좋은 예 - 안전한 조건부 처리
+const handleInterviewStart = (session: InterviewSession) => {
+  setCurrentInterviewSession(session);
+  if (session.useVoiceInterview) {
+    setCurrentPage("voice-interview-questions");
+  } else {
+    setCurrentPage("interview-questions");
+  }
+};
+```
+
+## 컴포넌트 렌더링 패턴
+
+### 1. 조건부 렌더링
+```typescript
+// ✅ 좋은 예 - 명확한 조건부 렌더링
+const renderCurrentPage = () => {
+  switch (currentPage) {
+    case "home":
+      return (
+        <Home
+          currentPersona={currentPersona}
+          personas={personas}
+          scrapedJobs={getCurrentPersonaScrapedJobs()}
+          onNavigate={navigateTo}
+          onPersonaSelect={selectPersona}
+          onJobSelect={handleJobSelect}
+          onToggleScrap={handleToggleScrap}
+        />
+      );
+    case "login":
+      return (
+        <Auth
+          type={currentPage}
+          onNavigate={navigateTo}
+          onUserAuth={setIsNewUser}
+        />
+      );
+    default:
+      return <Home {...defaultProps} />;
+  }
+};
+```
+
+### 2. Props 전달 패턴
+```typescript
+// ✅ 좋은 예 - 필요한 props만 전달
+<JobDetail
+  jobId={selectedJobId}
+  currentPersona={currentPersona}
+  scrapedJobs={getCurrentPersonaScrapedJobs()}
+  onNavigate={navigateTo}
+  onToggleScrap={handleToggleScrap}
+/>
+```
+
+## 성능 최적화 패턴
+
+### 1. 메모이제이션 사용
+- `useMemo`: 계산 비용이 큰 값들
+- `useCallback`: 자식 컴포넌트에 전달되는 함수들
+
+### 2. 컴포넌트 분리
+- 큰 컴포넌트는 기능별로 분리
+- 재사용 가능한 로직은 커스텀 훅으로 추출
+
+## 에러 처리 패턴
+
+### 1. 안전한 데이터 접근
+```typescript
+// ✅ 좋은 예 - 안전한 접근
+const getCurrentPersonaScrapedJobs = () => {
+  return getScrapedJobs(currentPersona?.persona_id);
+};
+
+// ❌ 나쁜 예 - 안전하지 않은 접근
+const getCurrentPersonaScrapedJobs = () => {
+  return getScrapedJobs(currentPersona.persona_id);
+};
+```
+
+### 2. 기본값 제공
+```typescript
+// ✅ 좋은 예 - 기본값 제공
+<PersonaCompleted
+  persona={currentPersona!}
+  onNavigate={navigateTo}
+  isNewUser={isNewUser}
+/>
+```

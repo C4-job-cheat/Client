@@ -1,0 +1,119 @@
+---
+globs: *.ts,*.tsx
+description: TypeScript 코딩 스타일 및 베스트 프랙티스
+---
+
+# TypeScript 코딩 스타일 가이드
+
+## 타입 정의 규칙
+
+### 1. 타입 파일 구조
+- 모든 공통 타입은 [src/types/index.ts](mdc:src/types/index.ts)에 정의
+- API 요청/응답 타입은 명확한 네이밍 규칙 사용:
+  - `{Entity}CreateRequest`: 생성 요청 타입
+  - `{Entity}CreateResponse`: 생성 응답 타입
+  - `{Entity}DetailResponse`: 상세 조회 응답 타입
+  - `{Entity}ListResponse`: 목록 조회 응답 타입
+
+### 2. 타입 네이밍 컨벤션
+```typescript
+// ✅ 좋은 예
+export interface PersonaData {
+  job_category: string;
+  job_role?: string;
+  skills?: string[];
+}
+
+export type Page = "home" | "login" | "signup";
+
+// ❌ 나쁜 예
+export interface personaData {
+  jobCategory: string;
+  jobRole?: string;
+}
+```
+
+### 3. 옵셔널 프로퍼티 사용
+- API에서 선택적으로 제공되는 필드는 `?` 사용
+- 클라이언트에서 초기화되지 않을 수 있는 상태는 옵셔널로 정의
+
+### 4. 유니온 타입 활용
+- 페이지 라우팅, 상태 값 등은 유니온 타입으로 제한
+- 리터럴 타입을 사용하여 타입 안정성 확보
+
+## 컴포넌트 Props 타입
+
+### 1. Props 인터페이스 정의
+```typescript
+// ✅ 좋은 예
+interface HomeProps {
+  currentPersona: PersonaResponse | null;
+  personas: PersonaResponse[];
+  scrapedJobs: Set<string>;
+  onNavigate: (page: Page, source?: NavigationSource) => void;
+  onPersonaSelect: (persona: PersonaResponse) => void;
+}
+
+// ❌ 나쁜 예
+interface HomeProps {
+  currentPersona: any;
+  personas: any[];
+  scrapedJobs: any;
+  onNavigate: any;
+}
+```
+
+### 2. 이벤트 핸들러 타입
+- 콜백 함수는 명확한 시그니처 정의
+- 옵셔널 매개변수는 `?` 사용
+
+## 상태 관리 타입
+
+### 1. useState 타입 명시
+```typescript
+// ✅ 좋은 예
+const [currentPage, setCurrentPage] = useState<Page>('home');
+const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
+const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
+// ❌ 나쁜 예
+const [currentPage, setCurrentPage] = useState('home');
+const [coverLetters, setCoverLetters] = useState([]);
+```
+
+### 2. 커스텀 훅 반환 타입
+- 커스텀 훅의 반환값은 명확한 인터페이스로 정의
+- usePersona, useJobScrap 등에서 일관된 패턴 사용
+
+## API 통신 타입
+
+### 1. API 클라이언트 타입 안정성
+- [src/api/apiClient.ts](mdc:src/api/apiClient.ts)에서 제네릭 타입 활용
+- 응답 데이터의 타입을 명확히 정의
+
+### 2. 에러 처리 타입
+- API 에러 응답에 대한 타입 정의
+- try-catch 블록에서 적절한 타입 가드 사용
+
+## 코드 품질 규칙
+
+### 1. 타입 가드 사용
+```typescript
+// ✅ 좋은 예
+if (currentPersona && currentPersona.persona_id) {
+  // currentPersona이 확실히 존재함
+}
+
+// ❌ 나쁜 예
+if (currentPersona) {
+  // 타입이 불확실함
+}
+```
+
+### 2. 타입 단언 최소화
+- `as` 키워드 사용을 최소화하고 타입 가드 우선 사용
+- 불가피한 경우에만 타입 단언 사용
+
+### 3. 인터페이스 vs 타입 별칭
+- 객체 구조는 `interface` 사용
+- 유니온 타입, 기본 타입 별칭은 `type` 사용

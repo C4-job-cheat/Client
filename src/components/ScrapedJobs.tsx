@@ -1,99 +1,107 @@
+import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, MapPin, Briefcase } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { PersonaCardHeader } from './PersonaCardHeader';
-import type { Page, Persona } from '../types';
-
-// Mock data for jobs
-const mockJobs = [
-  {
-    id: '1',
-    company: '토스',
-    title: '프론트엔드 개발자',
-    field: '개발/프로그래밍',
-    matchScore: 95,
-    requirements: {
-      career: 4, global: 3, environment: 5, compensation: 4, learning: 5, networking: 3
-    },
-    details: {
-      location: '서울 강남구',
-      education: '대학교 졸업',
-      employmentType: '정규직',
-      registeredDate: '2024-12-01',
-      deadline: '2024-12-31',
-      description: '토스의 프론트엔드 개발자로서 사용자 경험을 개선하고 혁신적인 서비스를 개발합니다.',
-      jobDescription: '사용자 인터페이스를 개발하고 유지 관리하는 역할',
-      techStack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
-      certifications: ['정보처리기사']
-    },
-    aiReason: '귀하의 React 및 TypeScript 경험이 토스의 기술 스택과 매우 잘 맞습니다.',
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
-  },
-  {
-    id: '2',
-    company: '네이버',
-    title: 'UX/UI 디자이너',
-    field: '디자인',
-    matchScore: 88,
-    requirements: {
-      career: 3, global: 4, environment: 4, compensation: 4, learning: 4, networking: 4
-    },
-    details: {
-      location: '경기 성남시',
-      education: '대학교 졸업',
-      employmentType: '정규직',
-      registeredDate: '2024-11-28',
-      deadline: '2024-12-25',
-      description: '네이버의 다양한 서비스에서 사용자 경험을 디자인하고 개선합니다.',
-      jobDescription: '사용자 경험을 디자인하고 프로토타입을 제작하는 역할',
-      techStack: ['Figma', 'Sketch', 'Adobe Creative Suite'],
-      certifications: ['컴퓨터그래픽스운용기능사']
-    },
-    aiReason: '디자인 포트폴리오와 사용자 경험에 대한 이해가 뛰어나십니다.',
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
-  },
-  {
-    id: '3',
-    company: '카카오',
-    title: '백엔드 개발자',
-    field: '개발/프로그래밍',
-    matchScore: 82,
-    requirements: {
-      career: 5, global: 3, environment: 4, compensation: 5, learning: 4, networking: 3
-    },
-    details: {
-      location: '제주도',
-      education: '대학교 졸업',
-      employmentType: '정규직',
-      registeredDate: '2024-11-25',
-      deadline: '2024-12-20',
-      description: '카카오의 대규모 서비스를 지원하는 백엔드 시스템을 개발합니다.',
-      jobDescription: '서버 및 데이터베이스를 관리하고 API를 개발하는 역할',
-      techStack: ['Java', 'Spring', 'MySQL', 'Redis'],
-      certifications: ['정보처리기사', 'AWS Solutions Architect']
-    },
-    aiReason: '백엔드 개발 경험과 대규모 시스템에 대한 이해가 있으십니다.',
-    logoUrl: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=100&h=100&fit=crop&crop=face'
-  }
-];
+import { apiClient } from '../api/apiClient';
+import type { Page, PersonaResponse, ScrapedJobsResponse, ScrapedJob } from '../types';
 
 interface ScrapedJobsProps {
-  currentPersona: Persona | null;
+  currentPersona: PersonaResponse | null;
   scrapedJobs: Set<string>;
   onNavigate: (page: Page, source?: 'cover-letter' | 'interview' | 'scraped-jobs' | 'general') => void;
   onJobSelect: (jobId: string) => void;
+  onToggleScrap: (jobId: string) => void;
 }
 
 export function ScrapedJobs({ 
   currentPersona, 
   scrapedJobs, 
   onNavigate, 
-  onJobSelect
+  onJobSelect,
+  onToggleScrap
 }: ScrapedJobsProps) {
-  // 스크랩된 공고만 필터링
-  const scrapedJobList = mockJobs.filter(job => scrapedJobs.has(job.id));
+  const [scrapedJobsData, setScrapedJobsData] = useState<ScrapedJobsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // API 호출 함수
+  const fetchScrapedJobs = useCallback(async () => {
+    if (!currentPersona) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data } = await apiClient.get<ScrapedJobsResponse>('/api/job-search/scrap/list/', {
+        params: {
+          user_id: currentPersona.user_id,
+          persona_id: currentPersona.persona_id
+        }
+      });
+      
+      console.log('🔍 스크랩된 공고 목록:', data);
+      setScrapedJobsData(data);
+    } catch (err) {
+      console.error('스크랩된 공고 목록 조회 실패:', err);
+      setError('스크랩된 공고 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPersona]);
+
+  useEffect(() => {
+    fetchScrapedJobs();
+  }, [fetchScrapedJobs]);
+
+  if (!currentPersona) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">페르소나를 먼저 설정해주세요</p>
+          <Button onClick={() => onNavigate('persona-setup')}>
+            페르소나 설정하기
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">스크랩된 공고를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchScrapedJobs}>
+            다시 시도
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!scrapedJobsData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">스크랩된 공고 데이터가 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatDeadline = (deadline: string) => {
     const date = new Date(deadline);
@@ -118,6 +126,7 @@ export function ScrapedJobs({
               size="sm"
               onClick={() => onNavigate('home')}
               className="flex items-center space-x-2"
+              disabled={!currentPersona}
             >
               <ArrowLeft className="w-4 h-4" />
               <span>홈으로</span>
@@ -130,9 +139,23 @@ export function ScrapedJobs({
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* 페르소나 카드 헤더 */}
-        {currentPersona && (
-          <div className="mb-8">
+        {currentPersona ? (
+          <>
             <PersonaCardHeader persona={currentPersona} />
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-600">
+              <div>
+                <p className="text-gray-500">직무</p>
+                <p className="font-medium text-gray-900">{scrapedJobsData.persona_card.job_role ?? '직무 미지정'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">학력</p>
+                <p className="font-medium text-gray-900">{scrapedJobsData.persona_card.school_name ?? '학력 정보 없음'}</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-xs text-gray-500">
+            페르소나를 먼저 생성해주세요.
           </div>
         )}
 
@@ -141,105 +164,151 @@ export function ScrapedJobs({
             <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-gray-600 mb-2">스크랩한 공고가 없습니다</h3>
             <p className="text-gray-400 mb-6">관심 있는 공고를 스크랩해보세요</p>
-            <Button onClick={() => currentPersona ? onNavigate('job-recommendations') : onNavigate('persona-waiting', 'scraped-jobs')}>
-              공고 추천받기
+            <Button onClick={() => onNavigate(currentPersona ? 'job-recommendations' : 'persona-waiting', 'scraped-jobs')}>
+              {currentPersona ? '추천 공고 보기' : '페르소나 생성하기'}
             </Button>
           </div>
-        ) : (
-          <>
-
-            {/* Desktop-optimized Full-width Table */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 border-b">
-                    <TableHead className="py-4 px-6 font-semibold text-gray-900">기업명</TableHead>
-                    <TableHead className="py-4 px-6 font-semibold text-gray-900">공고명</TableHead>
-                    <TableHead className="py-4 px-6 font-semibold text-gray-900">직무</TableHead>
-                    <TableHead className="py-4 px-6 font-semibold text-gray-900">필요 자격증/기술 스택</TableHead>
-                    <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">추천도</TableHead>
-                    <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">마감일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scrapedJobList.map((job) => (
-                    <TableRow 
-                      key={job.id}
-                      className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
-                      onClick={() => onJobSelect(job.id)}
-                    >
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <ImageWithFallback
-                            src={job.logoUrl}
-                            alt={`${job.company} 로고`}
-                            className="w-10 h-10 rounded-lg object-cover shadow-sm"
-                          />
-                          <span className="font-medium">{job.company}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="space-y-1">
-                          <p className="font-semibold text-gray-900 leading-tight">{job.title}</p>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {job.details.location}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <Badge variant="outline" className="text-sm">
-                          {job.field}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                      {job.details.techStack?.slice(0, 3).map((tech) => (
-                        <Badge 
-                          key={tech} 
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {tech}
-                        </Badge>
-                      ))}
-                          {job.details.techStack && job.details.techStack.length > 3 && (
-                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
-                              +{job.details.techStack.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center py-4 px-6">
-                        <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 rounded-full font-semibold">
-                          {job.matchScore}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center py-4 px-6">
-                        <Badge 
-                          variant={formatDeadline(job.details.deadline).includes('마감') ? 'destructive' : 'outline'}
-                          className="font-medium"
-                        >
-                          {formatDeadline(job.details.deadline)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="mt-8 text-center">
-              <Button 
-                variant="outline" 
-                onClick={() => currentPersona ? onNavigate('job-recommendations') : onNavigate('persona-waiting', 'scraped-jobs')}
-                className="px-8 py-2"
+        ) : currentPersona ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-6">
+            {scrapedJobsData.scraped_jobs.map((job) => (
+              <div
+                key={job.job_posting_id}
+                className="p-4 border border-gray-200 rounded-xl hover:shadow transition-shadow"
+                onClick={() => onJobSelect(job.job_posting_id)}
               >
-                더 많은 공고 찾아보기
-              </Button>
-            </div>
-          </>
+                <div className="flex items-center space-x-3 mb-3">
+                  <ImageWithFallback
+                    src={job.company_logo}
+                    alt={`${job.company_name} 로고`}
+                    className="w-10 h-10 rounded-lg object-cover"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{job.job_title}</h3>
+                    <p className="text-xs text-gray-500">{job.company_name}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-xs text-gray-600">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-3 h-3" />
+                    <span>{job.location}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {job.requirements?.slice(0, 3).map((req, index) => (
+                      <Badge key={index} variant="outline" className="text-[10px]">
+                        {req}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Briefcase className="w-3 h-3" />
+                      <span>{job.job_category}</span>
+                    </div>
+                    <span className="text-red-600 font-medium">
+                      {formatDeadline(job.deadline)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-gray-500">
+            페르소나를 설정하면 스크랩한 공고를 볼 수 있어요.
+          </div>
         )}
+
+        <div className="mt-12">
+          {currentPersona ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 border-b">
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900">기업명</TableHead>
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900">공고명</TableHead>
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900">직무</TableHead>
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900">필요 자격증/기술 스택</TableHead>
+                  <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">추천도</TableHead>
+                  <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">마감일</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {scrapedJobList.map((job) => (
+                  <TableRow
+                    key={job.id}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    onClick={() => onJobSelect(job.id)}
+                  >
+                    <TableCell className="py-4 px-6">
+                      <div className="flex items-center space-x-3">
+                        <ImageWithFallback
+                          src={job.logoUrl}
+                          alt={`${job.company} 로고`}
+                          className="w-10 h-10 rounded-lg object-cover shadow-sm"
+                        />
+                        <span className="font-medium text-gray-900">{job.company}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 px-6">
+                      <div className="space-y-1">
+                        <p className="font-semibold text-gray-900 leading-tight">{job.title}</p>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {job.details.location}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 px-6">
+                      <Badge variant="outline" className="text-sm">
+                        {job.field}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4 px-6">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {job.details.techStack?.slice(0, 3).map((tech) => (
+                          <Badge key={tech} variant="outline" className="text-xs">
+                            {tech}
+                          </Badge>
+                        ))}
+                        {job.details.techStack && job.details.techStack.length > 3 && (
+                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
+                            +{job.details.techStack.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4 px-6">
+                      <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 rounded-full font-semibold">
+                        {job.matchScore}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4 px-6">
+                      <Badge
+                        variant={formatDeadline(job.details.deadline).includes('마감') ? 'destructive' : 'outline'}
+                        className="font-medium"
+                      >
+                        {formatDeadline(job.details.deadline)}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-gray-400 text-sm py-10">
+              페르소나 정보가 없으면 테이블을 볼 수 없습니다.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 text-center">
+          <Button 
+            variant="outline" 
+            onClick={() => currentPersona ? onNavigate('job-recommendations') : onNavigate('persona-waiting', 'scraped-jobs')}
+            className="px-8 py-2"
+          >
+            더 많은 공고 찾아보기
+          </Button>
+        </div>
       </div>
     </div>
   );

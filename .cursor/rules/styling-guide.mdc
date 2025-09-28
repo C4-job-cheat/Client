@@ -1,0 +1,243 @@
+---
+globs: *.tsx,*.css,tailwind.config.js
+description: Tailwind CSS 스타일링 및 디자인 시스템 가이드
+---
+
+# Tailwind CSS 스타일링 가이드
+
+## 디자인 시스템 설정
+
+### 1. Tailwind 설정 구조
+[tailwind.config.js](mdc:tailwind.config.js)에서 커스텀 디자인 시스템을 정의합니다.
+
+```javascript
+// ✅ 커스텀 색상 팔레트
+colors: {
+  brand: {
+    primary: 'rgb(129, 140, 248)',
+    secondary: 'rgb(79, 70, 229)',
+    accent: 'rgb(0, 172, 48)',
+  },
+  neutral: {
+    50: 'rgb(250, 250, 250)',
+    100: 'rgb(241, 241, 241)',
+    // ... 중간 생략
+    950: 'rgb(17, 17, 17)',
+  }
+}
+```
+
+### 2. 폰트 시스템
+```javascript
+fontFamily: {
+  'heading': ['Gabarito', 'sans-serif'],
+  'body': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  'display': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+}
+```
+
+### 3. 커스텀 애니메이션
+```javascript
+keyframes: {
+  fadeIn: {
+    '0%': { opacity: '0' },
+    '100%': { opacity: '1' },
+  },
+  slideUp: {
+    '0%': { transform: 'translateY(10px)', opacity: '0' },
+    '100%': { transform: 'translateY(0)', opacity: '1' },
+  }
+}
+```
+
+## 컴포넌트 스타일링 패턴
+
+### 1. shadcn/ui 컴포넌트 활용
+`src/components/ui/` 디렉토리의 컴포넌트들은 class-variance-authority를 사용합니다.
+
+```typescript
+// ✅ 좋은 예 - variant 기반 스타일링
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+```
+
+### 2. 조건부 스타일링
+```typescript
+// ✅ 좋은 예 - cn 유틸리티 사용
+import { cn } from "@/lib/utils"
+
+const className = cn(
+  "base-styles",
+  condition && "conditional-styles",
+  variant === "primary" && "primary-styles",
+  className // 외부에서 전달받은 클래스
+)
+```
+
+### 3. 반응형 디자인
+```typescript
+// ✅ 좋은 예 - 모바일 퍼스트 접근
+<div className="
+  w-full p-4
+  sm:p-6
+  md:p-8
+  lg:max-w-4xl lg:mx-auto
+  xl:max-w-6xl
+">
+```
+
+## 레이아웃 패턴
+
+### 1. 컨테이너 레이아웃
+```typescript
+// ✅ 좋은 예 - 일관된 컨테이너 패턴
+<div className="min-h-screen bg-white">
+  <div className="container mx-auto px-4 py-8">
+    {/* 컨텐츠 */}
+  </div>
+</div>
+```
+
+### 2. 그리드 레이아웃
+```typescript
+// ✅ 좋은 예 - 반응형 그리드
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {items.map(item => (
+    <Card key={item.id} className="p-6">
+      {/* 카드 컨텐츠 */}
+    </Card>
+  ))}
+</div>
+```
+
+### 3. 플렉스 레이아웃
+```typescript
+// ✅ 좋은 예 - 플렉스 유틸리티 활용
+<div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+  <h1 className="text-2xl font-bold">제목</h1>
+  <Button variant="outline">액션</Button>
+</div>
+```
+
+## 색상 시스템 활용
+
+### 1. 시맨틱 색상 사용
+```typescript
+// ✅ 좋은 예 - 의미에 맞는 색상 사용
+<div className="bg-primary text-primary-foreground">주요 액션</div>
+<div className="bg-destructive text-destructive-foreground">위험한 액션</div>
+<div className="bg-muted text-muted-foreground">보조 정보</div>
+```
+
+### 2. 브랜드 색상 활용
+```typescript
+// ✅ 좋은 예 - 브랜드 색상 사용
+<div className="bg-brand-primary text-white">브랜드 강조</div>
+<div className="bg-gradient-primary">그라데이션 배경</div>
+```
+
+## 애니메이션 및 트랜지션
+
+### 1. 기본 트랜지션
+```typescript
+// ✅ 좋은 예 - 부드러운 전환
+<button className="transition-colors hover:bg-primary/90">
+  버튼
+</button>
+
+<div className="transition-all duration-300 hover:scale-105">
+  호버 효과
+</div>
+```
+
+### 2. 커스텀 애니메이션
+```typescript
+// ✅ 좋은 예 - 커스텀 애니메이션 사용
+<div className="animate-fade-in">
+  페이드인 효과
+</div>
+
+<div className="animate-slide-up">
+  슬라이드업 효과
+</div>
+```
+
+## 다크모드 지원
+
+### 1. 다크모드 클래스
+```typescript
+// ✅ 좋은 예 - 다크모드 지원
+<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+  다크모드 지원 컨텐츠
+</div>
+```
+
+### 2. 조건부 다크모드 스타일
+```typescript
+// ✅ 좋은 예 - 다크모드 variant
+const cardVariants = cva(
+  "rounded-lg border p-6",
+  {
+    variants: {
+      theme: {
+        light: "bg-white border-gray-200",
+        dark: "bg-gray-900 border-gray-700",
+      }
+    }
+  }
+)
+```
+
+## 접근성 고려사항
+
+### 1. 포커스 상태
+```typescript
+// ✅ 좋은 예 - 접근성 고려
+<button className="
+  focus:outline-none 
+  focus:ring-2 
+  focus:ring-primary 
+  focus:ring-offset-2
+">
+  접근 가능한 버튼
+</button>
+```
+
+### 2. 색상 대비
+- 텍스트와 배경의 충분한 대비 확보
+- 색상만으로 정보를 전달하지 않기
+
+## 성능 최적화
+
+### 1. 불필요한 클래스 제거
+```typescript
+// ✅ 좋은 예 - 필요한 클래스만 사용
+<div className={cn(
+  "base-classes",
+  isActive && "active-classes",
+  size === "large" && "large-classes"
+)}>
+```
+
+### 2. CSS-in-JS 대신 Tailwind 사용
+- 런타임 스타일 계산 최소화
+- 빌드 타임에 최적화된 CSS 생성

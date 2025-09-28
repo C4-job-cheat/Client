@@ -3,10 +3,10 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { PersonaCard } from './PersonaCard';
-import type { Page, Persona } from '../types';
+import type { Page, PersonaResponse } from '../types';
 
 interface FeatureHubProps {
-  currentPersona: Persona | null;
+  currentPersona: PersonaResponse | null;
   onNavigate: (page: Page, source?: 'cover-letter' | 'interview' | 'scraped-jobs' | 'general') => void;
   feature: {
     type: 'cover-letter' | 'interview';

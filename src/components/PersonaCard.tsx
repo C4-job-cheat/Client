@@ -1,18 +1,18 @@
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { User, GraduationCap, Award } from 'lucide-react';
-import type { Persona } from '../types';
+import type { PersonaResponse } from '../types';
 
 interface PersonaCardProps {
-  persona: Persona;
+  persona: PersonaResponse;
   className?: string;
   compact?: boolean;
   expanded?: boolean;
 }
 
 export function PersonaCard({ persona, className = '', compact = false, expanded = false }: PersonaCardProps) {
-  const specificJob = persona.categorySpecific?.specificJob || persona.jobCategory;
-  const techStack = persona.categorySpecific?.skills?.techStack ?? [];
+  const specificJob = persona.job_role || persona.job_category;
+  const techStack = persona.skills ?? [];
   const certifications = persona.certifications ?? [];
 
   const renderBadges = (
@@ -54,7 +54,7 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-900 truncate">{specificJob}</h3>
-            <p className="text-sm text-gray-600 truncate">{persona.education.level}</p>
+            <p className="text-sm text-gray-600 truncate">{persona.school_name ?? '학교 정보 없음'}</p>
           </div>
         </div>
       </Card>
@@ -71,9 +71,9 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
               <User className="h-8 w-8 lg:h-10 lg:w-10 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl lg:text-2xl font-bold text-gray-900">{persona.jobCategory}</h3>
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900">{persona.job_category}</h3>
               <p className="text-lg lg:text-xl text-gray-600">{specificJob}</p>
-              <p className="text-sm lg:text-base text-gray-500 mt-1">{persona.description}</p>
+              <p className="text-sm lg:text-base text-gray-500 mt-1">{persona.major ?? ''}</p>
             </div>
           </div>
 
@@ -88,18 +88,12 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">학력 수준</span>
-                  <span className="font-medium">{persona.education.level}</span>
+                  <span className="font-medium">{persona.school_name ?? '학교 미입력'}</span>
                 </div>
-                {persona.education.major && (
+                {persona.major && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">전공</span>
-                    <Badge variant="outline">{persona.education.major}</Badge>
-                  </div>
-                )}
-                {persona.categorySpecific?.education?.school && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">학교</span>
-                    <span className="font-medium">{persona.categorySpecific.education.school}</span>
+                    <Badge variant="outline">{persona.major}</Badge>
                   </div>
                 )}
               </div>
@@ -108,13 +102,13 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
             {/* 기술 스택 */}
             {techStack.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Award className="h-5 w-5 text-gray-400" />
-                  <h4 className="font-semibold text-gray-900 lg:text-lg">기술 스택</h4>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {renderBadges(techStack, techStack.length, '선택 없음', 'secondary')}
-                </div>
+              <div className="flex items-center space-x-2">
+                <Award className="h-5 w-5 text-gray-400" />
+                <h4 className="font-semibold text-gray-900 lg:text-lg">기술 스택</h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {renderBadges(techStack, techStack.length, '선택 없음', 'secondary')}
+              </div>
               </div>
             )}
 
@@ -131,34 +125,8 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
               </div>
             )}
 
-            {/* 커리어 목표 */}
-            {persona.categorySpecific?.careerGoals?.goal && (
-              <div className="space-y-3">
-                <h4 className="font-semibold text-gray-900 lg:text-lg">커리어 목표</h4>
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 leading-relaxed">
-                    {persona.categorySpecific.careerGoals.goal}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* 수상 이력 */}
-          {persona.categorySpecific?.skills?.achievements && persona.categorySpecific.skills.achievements.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-semibold text-gray-900 lg:text-lg">수상 이력</h4>
-              <div className="bg-green-50 rounded-lg p-4">
-                <ul className="space-y-1">
-                  {persona.categorySpecific.skills.achievements.map((achievement: string, index: number) => (
-                    <li key={index} className="text-sm text-green-800">
-                      • {achievement}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
       </Card>
     );
@@ -177,24 +145,19 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
             <div>
               <p className="text-xs text-gray-500 mb-0.5">희망 분야 / 직무</p>
               <p className="font-medium text-gray-900">
-                {persona.jobCategory}
+                {persona.job_category}
                 {specificJob ? ` · ${specificJob}` : ''}
               </p>
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">학력 수준</p>
-              <p className="font-medium text-gray-900">{persona.education.level || '미설정'}</p>
-            </div>
-
-            <div>
               <p className="text-xs text-gray-500 mb-0.5">학교명</p>
-              <p className="font-medium text-gray-900">{persona.categorySpecific?.education?.school || '학교 미설정'}</p>
+              <p className="font-medium text-gray-900">{persona.school_name || '학교 미설정'}</p>
             </div>
 
             <div>
               <p className="text-xs text-gray-500 mb-0.5">전공</p>
-              <p className="font-medium text-gray-900">{persona.education.major || '전공 미설정'}</p>
+              <p className="font-medium text-gray-900">{persona.major || '전공 미설정'}</p>
             </div>
           </div>
           {/* 프로필 사진을 4개 필드와 동일한 높이로 우측에 배치 */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -7,10 +7,11 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { PersonaCard } from './PersonaCard';
-import type { Page, Persona, CoverLetter } from '../types';
+import { apiClient } from '../api/apiClient';
+import type { Page, PersonaResponse, CoverLetter, CoverLetterPersonaResponse, CoverLetterCreateRequest, CoverLetterCreateResponse } from '../types';
 
 interface CoverLetterSetupProps {
-  currentPersona: Persona | null;
+  currentPersona: PersonaResponse | null;
   onNavigate: (page: Page) => void;
   onComplete: (coverLetter: CoverLetter) => void;
 }
@@ -22,6 +23,39 @@ export function CoverLetterSetup({ currentPersona, onNavigate, onComplete }: Cov
     experience: '',
     style: 'experience' as 'experience' | 'knowledge' | 'creative'
   });
+
+  const [personaCardData, setPersonaCardData] = useState<CoverLetterPersonaResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // API 호출 함수
+  const fetchPersonaCard = useCallback(async () => {
+    if (!currentPersona) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data } = await apiClient.get<CoverLetterPersonaResponse>('/api/cover-letters/', {
+        params: {
+          persona_id: currentPersona.persona_id
+        }
+      });
+      
+      console.log('🔍 자기소개서 페르소나 카드 데이터:', data);
+      setPersonaCardData(data);
+    } catch (err) {
+      console.error('페르소나 카드 조회 실패:', err);
+      setError('페르소나 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPersona]);
+
+  useEffect(() => {
+    fetchPersonaCard();
+  }, [fetchPersonaCard]);
 
   if (!currentPersona) {
     return (
@@ -40,39 +74,92 @@ export function CoverLetterSetup({ currentPersona, onNavigate, onComplete }: Cov
     );
   }
 
-  const handleGenerate = () => {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">페르소나 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchPersonaCard}>
+            다시 시도
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!personaCardData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">페르소나 정보를 찾을 수 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleGenerate = async () => {
     if (!formData.targetCompany || !formData.strengths) {
       alert('목표 기업과 나의 강점을 입력해주세요.');
       return;
     }
 
-    const coverLetter: CoverLetter = {
-      id: Date.now().toString(),
-      personaId: currentPersona.id,
-      targetCompany: formData.targetCompany,
-      strengths: formData.strengths,
-      experience: formData.experience,
-      style: formData.style,
-      content: generateInitialContent(),
-      createdAt: new Date().toISOString()
-    };
+    if (!currentPersona) {
+      alert('페르소나 정보가 없습니다.');
+      return;
+    }
 
-    onComplete(coverLetter);
+    setIsCreating(true);
+    setError(null);
+
+    try {
+      const requestData: CoverLetterCreateRequest = {
+        user_id: currentPersona.user_id,
+        persona_id: currentPersona.persona_id,
+        company_name: formData.targetCompany,
+        strengths: formData.strengths,
+        activities: formData.experience,
+        style: formData.style
+      };
+
+      console.log('🔍 자기소개서 생성 요청:', requestData);
+      
+      const { data } = await apiClient.post<CoverLetterCreateResponse>('/api/cover-letters/create/', requestData);
+      
+      console.log('🔍 자기소개서 생성 응답:', data);
+
+      // 서버 응답을 CoverLetter 형태로 변환
+      const coverLetter: CoverLetter = {
+        id: data.id,
+        personaId: data.persona_id,
+        targetCompany: data.company_name,
+        strengths: formData.strengths,
+        experience: formData.experience,
+        style: data.style as 'experience' | 'knowledge' | 'creative',
+        content: data.cover_letter.map(p => p.paragraph).join('\n\n'),
+        createdAt: data.created_at,
+        serverData: data // 서버 데이터를 별도로 저장
+      };
+
+      onComplete(coverLetter);
+    } catch (err) {
+      console.error('자기소개서 생성 실패:', err);
+      setError('자기소개서 생성에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const generateInitialContent = () => {
-    const baseContent = `안녕하세요. ${formData.targetCompany}에 지원하게 된 ${currentPersona.jobCategory} 전문가입니다.
-
-저는 ${currentPersona.education.level}을 졸업하고 ${currentPersona.experience.hasExperience ? `${currentPersona.experience.years}년간의 실무 경험을` : '신입으로서 열정과 학습 의지를'} 바탕으로 성장해왔습니다.
-
-특히 저의 강점은 ${formData.strengths}입니다. ${formData.experience && `이전 경험에서 ${formData.experience}를 통해 이러한 역량을 발휘했습니다.`}
-
-${currentPersona.description && `저는 ${currentPersona.description}`}
-
-${formData.targetCompany}에서 제 역량을 발휘하여 회사의 성장에 기여하고 싶습니다. 감사합니다.`;
-
-    return baseContent;
-  };
 
   return (
     <div
@@ -104,7 +191,15 @@ ${formData.targetCompany}에서 제 역량을 발휘하여 회사의 성장에 �
           {/* Left: Persona Card */}
           <div className="lg:col-span-2">
             <div className="sticky top-8">
-              <PersonaCard persona={currentPersona} />
+              <PersonaCard persona={{
+                ...currentPersona,
+                school_name: personaCardData.persona_card.school,
+                major: personaCardData.persona_card.major,
+                job_category: personaCardData.persona_card.job_category,
+                job_role: personaCardData.persona_card.job_title,
+                skills: personaCardData.persona_card.skills,
+                certifications: personaCardData.persona_card.certifications,
+              }} />
             </div>
           </div>
 
@@ -175,10 +270,10 @@ ${formData.targetCompany}에서 제 역량을 발휘하여 회사의 성장에 �
                   onClick={handleGenerate}
                   size="lg"
                   className="w-full py-4 bg-blue-600 hover:bg-blue-700"
-                  disabled={!formData.targetCompany || !formData.strengths}
+                  disabled={!formData.targetCompany || !formData.strengths || isCreating}
                 >
                   <FileText className="h-5 w-5 mr-2" />
-                  초안 생성하기
+                  {isCreating ? '자기소개서 생성 중...' : '초안 생성하기'}
                 </Button>
               </div>
             </Card>

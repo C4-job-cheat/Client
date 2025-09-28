@@ -1,26 +1,28 @@
 import { useEffect, useState, type MouseEvent } from 'react';
+import { Bookmark, Building, LogOut, MapPin, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { Bookmark, Building, MapPin, TrendingUp } from 'lucide-react';
 import { PersonaToggle } from './PersonaToggle';
-import type { Page, Persona } from '../types';
+import type { Page, PersonaResponse } from '../types';
 import { MOCK_JOBS } from '../constants/mockData';
+import { useAuthContext } from '../context/AuthContext';
 
 interface HomeProps {
-  currentPersona: Persona | null;
-  personas: Persona[];
+  currentPersona: PersonaResponse | null;
+  personas: PersonaResponse[];
   scrapedJobs: Set<string>;
   onNavigate: (page: Page, source?: 'cover-letter' | 'interview' | 'scraped-jobs' | 'general') => void;
-  onPersonaSelect: (persona: Persona) => void;
+  onPersonaSelect: (persona: PersonaResponse) => void;
   onJobSelect: (jobId: string) => void;
   onToggleScrap: (jobId: string) => void;
-  onPersonaDelete: (personaId: string) => void;
+  onPersonaDelete?: (personaId: string) => void;
 }
 
 
 export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPersonaSelect, onJobSelect, onToggleScrap, onPersonaDelete }: HomeProps) {
   const [showScrapedJobs, setShowScrapedJobs] = useState(false);
+  const { firebaseUser, profile, logout } = useAuthContext();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,23 +81,30 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
               onNavigate={onNavigate}
               onPersonaDelete={onPersonaDelete}
             />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate('login')}
-              className="text-sm text-gray-600"
-            >
-              로그인
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate('signup')}
-              className="text-sm text-gray-600"
-            >
-              회원가입
-            </Button>
+            {firebaseUser ? (
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-700">
+                  {profile?.name ?? firebaseUser.displayName ?? '사용자'}님
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-sm text-gray-600"
+                  onClick={() => logout().catch(console.error)}
+                >
+                  <LogOut className="mr-1 h-4 w-4" /> 로그아웃
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate('login')}
+                className="text-sm text-gray-600"
+              >
+                로그인
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -140,7 +149,7 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
             
             <Button
               size="default"
-              onClick={() => currentPersona ? onNavigate('job-recommendations') : onNavigate('persona-waiting', 'general')}
+              onClick={() => currentPersona ? onNavigate('job-recommendations') : onNavigate('persona-setup')}
               className="w-full font-twenty text-base bg-black hover:bg-gray-800 text-white border border-gray-800 py-3 rounded-lg transition-all duration-200 shadow-sm"
             >
               맞춤 공고 추천받기

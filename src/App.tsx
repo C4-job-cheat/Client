@@ -1,31 +1,33 @@
-import { useState } from "react";
-import { Home } from "./components/Home";
-import { Auth } from "./components/Auth";
-import { PersonaSetup } from "./components/PersonaSetup";
-import { JobRecommendations } from "./components/JobRecommendations";
-import { JobDetail } from "./components/JobDetail";
-import { CoverLetterHub } from "./components/CoverLetterHub";
-import { CoverLetterSetup } from "./components/CoverLetterSetup";
-import { CoverLetterDraft } from "./components/CoverLetterDraft";
-import { InterviewHub } from "./components/InterviewHub";
-import { InterviewPractice } from "./components/InterviewPractice";
-import { InterviewQuestions } from "./components/InterviewQuestions";
-import { VoiceInterviewGuide } from "./components/VoiceInterviewGuide";
-import { VoiceInterviewQuestions } from "./components/VoiceInterviewQuestions";
-import { InterviewResults } from "./components/InterviewResults";
-import { ScrapedJobs } from "./components/ScrapedJobs";
-import { PersonaWaitingPage } from "./components/PersonaWaitingPage";
-import { Onboarding } from "./components/Onboarding";
-import { PersonaCompleted } from "./components/PersonaCompleted";
-import { Toaster } from "./components/ui/sonner";
+import { useState } from 'react'
+import { AuthProvider } from './context/AuthContext'
+import { Home } from './components/Home'
+import { Auth } from './components/Auth'
+import { PersonaSetup } from './components/PersonaSetup'
+import { JobRecommendations } from './components/JobRecommendations'
+import { JobDetail } from './components/JobDetail'
+import { CoverLetterHub } from './components/CoverLetterHub'
+import { CoverLetterSetup } from './components/CoverLetterSetup'
+import { CoverLetterDraft } from './components/CoverLetterDraft'
+import { InterviewHub } from './components/InterviewHub'
+import { InterviewPractice } from './components/InterviewPractice'
+import { InterviewQuestions } from './components/InterviewQuestions'
+import { VoiceInterviewGuide } from './components/VoiceInterviewGuide'
+import { VoiceInterviewQuestions } from './components/VoiceInterviewQuestions'
+import { InterviewResults } from './components/InterviewResults'
+import { ScrapedJobs } from './components/ScrapedJobs'
+import { PersonaWaitingPage } from './components/PersonaWaitingPage'
+import { Onboarding } from './components/Onboarding'
+import { PersonaCompleted } from './components/PersonaCompleted'
+import { Toaster } from './components/ui/sonner'
 
 // 중앙화된 타입들
 import type {
   Page,
-  Persona,
   CoverLetter,
   InterviewSession,
-  NavigationSource
+  NavigationSource,
+  PersonaData,
+  PersonaResponse,
 } from "./types";
 
 // 커스텀 훅들
@@ -35,7 +37,7 @@ import { useJobScrap } from "./hooks/useJobScrap";
 
 export default function App() {
   // 페이지 관리
-  const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [currentPage, setCurrentPage] = useState<Page>('home')
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [personaWaitingSource, setPersonaWaitingSource] = 
     useState<NavigationSource>('general');
@@ -45,10 +47,8 @@ export default function App() {
   const {
     personas,
     currentPersona,
-    addPersona,
-    deletePersona,
+    createPersona,
     selectPersona,
-    setCurrentPersona
   } = usePersona();
 
   const {
@@ -71,10 +71,9 @@ export default function App() {
     setCurrentPage(page);
   };
 
-  const handlePersonaComplete = (persona: Persona) => {
-    addPersona(persona);
-    // 웨이팅 페이지 건너뛰고 바로 완료 페이지로 이동
+  const handlePersonaComplete = async (persona: PersonaResponse) => {
     setCurrentPage("persona-completed");
+    return persona;
   };
 
   const handleJobSelect = (jobId: string) => {
@@ -84,12 +83,12 @@ export default function App() {
 
   const handleToggleScrap = (jobId: string) => {
     if (!currentPersona) return;
-    toggleScrap(jobId, currentPersona.id);
+    toggleScrap(jobId, currentPersona.persona_id, currentPersona.user_id);
   };
 
   // 현재 페르소나의 스크랩된 공고 가져오기  
   const getCurrentPersonaScrapedJobs = () => {
-    return getScrapedJobs(currentPersona?.id);
+    return getScrapedJobs(currentPersona?.persona_id);
   };
 
   const handleCoverLetterComplete = (
@@ -100,18 +99,6 @@ export default function App() {
     setCurrentPage("cover-letter-draft");
   };
 
-  const handleCoverLetterUpdate = (
-    updatedCoverLetter: CoverLetter,
-  ) => {
-    setCoverLetters((prev) =>
-      prev.map((cl) =>
-        cl.id === updatedCoverLetter.id
-          ? updatedCoverLetter
-          : cl,
-      ),
-    );
-    setCurrentCoverLetter(updatedCoverLetter);
-  };
 
   const handleInterviewStart = (session: InterviewSession) => {
     setCurrentInterviewSession(session);
@@ -131,10 +118,6 @@ export default function App() {
     setCurrentPage("interview-results");
   };
 
-  const handlePersonaDelete = (personaId: string) => {
-    deletePersona(personaId);
-  };
-
   const renderCurrentPage = () => {
     switch (currentPage) {
       case "home":
@@ -147,18 +130,16 @@ export default function App() {
             onPersonaSelect={selectPersona}
             onJobSelect={handleJobSelect}
             onToggleScrap={handleToggleScrap}
-            onPersonaDelete={handlePersonaDelete}
           />
         );
       case "login":
-      case "signup":
         return (
-          <Auth 
-            type={currentPage} 
+          <Auth
+            type={currentPage}
             onNavigate={navigateTo}
             onUserAuth={setIsNewUser}
           />
-        );
+        )
 
       case "onboarding":
         return (
@@ -215,6 +196,7 @@ export default function App() {
             scrapedJobs={getCurrentPersonaScrapedJobs()}
             onNavigate={navigateTo}
             onJobSelect={handleJobSelect}
+            onToggleScrap={handleToggleScrap}
           />
         );
       case "cover-letter-hub":
@@ -239,7 +221,6 @@ export default function App() {
           <CoverLetterDraft
             coverLetter={currentCoverLetter}
             onNavigate={navigateTo}
-            onUpdate={handleCoverLetterUpdate}
           />
         );
       case "interview-hub":
@@ -299,19 +280,20 @@ export default function App() {
             personas={personas}
             scrapedJobs={getCurrentPersonaScrapedJobs()}
             onNavigate={navigateTo}
-            onPersonaSelect={setCurrentPersona}
+            onPersonaSelect={selectPersona}
             onJobSelect={handleJobSelect}
             onToggleScrap={handleToggleScrap}
-            onPersonaDelete={handlePersonaDelete}
           />
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {renderCurrentPage()}
-      <Toaster />
-    </div>
+    <AuthProvider>
+      <div className="min-h-screen bg-white">
+        {renderCurrentPage()}
+        <Toaster />
+      </div>
+    </AuthProvider>
   );
 }
