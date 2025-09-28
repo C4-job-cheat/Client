@@ -1,243 +1,241 @@
 ---
-globs: *.tsx,*.css,tailwind.config.js
+globs: *.css,*.tsx,*.jsx
 description: Tailwind CSS 스타일링 및 디자인 시스템 가이드
 ---
 
-# Tailwind CSS 스타일링 가이드
+# Tailwind CSS 스타일링 및 디자인 시스템 가이드
 
-## 디자인 시스템 설정
+## Tailwind CSS 사용 규칙
 
-### 1. Tailwind 설정 구조
-[tailwind.config.js](mdc:tailwind.config.js)에서 커스텀 디자인 시스템을 정의합니다.
+### 1. 유틸리티 클래스 우선 사용
+```tsx
+// ✅ 좋은 예 - Tailwind 유틸리티 클래스 사용
+<div className="flex items-center justify-between p-4 bg-white rounded-lg shadow-md">
+  <h2 className="text-xl font-semibold text-gray-900">제목</h2>
+  <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+    버튼
+  </button>
+</div>
 
-```javascript
-// ✅ 커스텀 색상 팔레트
-colors: {
-  brand: {
-    primary: 'rgb(129, 140, 248)',
-    secondary: 'rgb(79, 70, 229)',
-    accent: 'rgb(0, 172, 48)',
-  },
-  neutral: {
-    50: 'rgb(250, 250, 250)',
-    100: 'rgb(241, 241, 241)',
-    // ... 중간 생략
-    950: 'rgb(17, 17, 17)',
-  }
-}
+// ❌ 나쁜 예 - 인라인 스타일 사용
+<div style={{ display: 'flex', alignItems: 'center', padding: '16px' }}>
+  <h2 style={{ fontSize: '20px', fontWeight: '600' }}>제목</h2>
+</div>
 ```
 
-### 2. 폰트 시스템
-```javascript
-fontFamily: {
-  'heading': ['Gabarito', 'sans-serif'],
-  'body': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  'display': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-}
-```
-
-### 3. 커스텀 애니메이션
-```javascript
-keyframes: {
-  fadeIn: {
-    '0%': { opacity: '0' },
-    '100%': { opacity: '1' },
-  },
-  slideUp: {
-    '0%': { transform: 'translateY(10px)', opacity: '0' },
-    '100%': { transform: 'translateY(0)', opacity: '1' },
-  }
-}
-```
-
-## 컴포넌트 스타일링 패턴
-
-### 1. shadcn/ui 컴포넌트 활용
-`src/components/ui/` 디렉토리의 컴포넌트들은 class-variance-authority를 사용합니다.
-
-```typescript
-// ✅ 좋은 예 - variant 기반 스타일링
-const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
-```
-
-### 2. 조건부 스타일링
-```typescript
-// ✅ 좋은 예 - cn 유틸리티 사용
-import { cn } from "@/lib/utils"
-
-const className = cn(
-  "base-styles",
-  condition && "conditional-styles",
-  variant === "primary" && "primary-styles",
-  className // 외부에서 전달받은 클래스
-)
-```
-
-### 3. 반응형 디자인
-```typescript
-// ✅ 좋은 예 - 모바일 퍼스트 접근
-<div className="
-  w-full p-4
-  sm:p-6
-  md:p-8
-  lg:max-w-4xl lg:mx-auto
-  xl:max-w-6xl
-">
-```
-
-## 레이아웃 패턴
-
-### 1. 컨테이너 레이아웃
-```typescript
-// ✅ 좋은 예 - 일관된 컨테이너 패턴
-<div className="min-h-screen bg-white">
-  <div className="container mx-auto px-4 py-8">
-    {/* 컨텐츠 */}
+### 2. 반응형 디자인
+```tsx
+// ✅ 좋은 예 - 반응형 클래스 사용
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div className="p-4 bg-white rounded-lg">
+    <h3 className="text-lg font-medium mb-2">카드 제목</h3>
+    <p className="text-sm text-gray-600">카드 내용</p>
   </div>
 </div>
-```
 
-### 2. 그리드 레이아웃
-```typescript
-// ✅ 좋은 예 - 반응형 그리드
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  {items.map(item => (
-    <Card key={item.id} className="p-6">
-      {/* 카드 컨텐츠 */}
-    </Card>
-  ))}
+// ✅ 좋은 예 - 모바일 우선 접근법
+<div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+  <div className="text-sm md:text-base lg:text-lg">텍스트 크기</div>
 </div>
 ```
 
-### 3. 플렉스 레이아웃
-```typescript
-// ✅ 좋은 예 - 플렉스 유틸리티 활용
-<div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+### 3. 다크 모드 지원
+```tsx
+// ✅ 좋은 예 - 다크 모드 클래스 사용
+<div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
   <h1 className="text-2xl font-bold">제목</h1>
-  <Button variant="outline">액션</Button>
+  <p className="text-gray-600 dark:text-gray-300">내용</p>
 </div>
 ```
 
-## 색상 시스템 활용
+## shadcn/ui 컴포넌트 사용
 
-### 1. 시맨틱 색상 사용
-```typescript
-// ✅ 좋은 예 - 의미에 맞는 색상 사용
-<div className="bg-primary text-primary-foreground">주요 액션</div>
-<div className="bg-destructive text-destructive-foreground">위험한 액션</div>
-<div className="bg-muted text-muted-foreground">보조 정보</div>
+### 1. 컴포넌트 임포트 패턴
+```tsx
+// ✅ 좋은 예 - shadcn/ui 컴포넌트 사용
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+// ✅ 좋은 예 - 컴포넌트 조합
+<Card className="w-full max-w-md">
+  <CardHeader>
+    <CardTitle>로그인</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    <div>
+      <Label htmlFor="email">이메일</Label>
+      <Input id="email" type="email" placeholder="이메일을 입력하세요" />
+    </div>
+    <Button className="w-full">로그인</Button>
+  </CardContent>
+</Card>
 ```
 
-### 2. 브랜드 색상 활용
-```typescript
-// ✅ 좋은 예 - 브랜드 색상 사용
-<div className="bg-brand-primary text-white">브랜드 강조</div>
-<div className="bg-gradient-primary">그라데이션 배경</div>
+### 2. 컴포넌트 변형 사용
+```tsx
+// ✅ 좋은 예 - variant prop 사용
+<Button variant="default">기본 버튼</Button>
+<Button variant="destructive">삭제 버튼</Button>
+<Button variant="outline">아웃라인 버튼</Button>
+<Button variant="ghost">고스트 버튼</Button>
+
+// ✅ 좋은 예 - size prop 사용
+<Button size="sm">작은 버튼</Button>
+<Button size="default">기본 버튼</Button>
+<Button size="lg">큰 버튼</Button>
+```
+
+## 디자인 시스템 구성
+
+### 1. 색상 팔레트
+```tsx
+// ✅ 좋은 예 - 일관된 색상 사용
+// Primary: blue-600, blue-700
+// Secondary: gray-600, gray-700
+// Success: green-600, green-700
+// Warning: yellow-600, yellow-700
+// Error: red-600, red-700
+
+<div className="bg-blue-600 text-white">Primary</div>
+<div className="bg-gray-600 text-white">Secondary</div>
+<div className="bg-green-600 text-white">Success</div>
+<div className="bg-red-600 text-white">Error</div>
+```
+
+### 2. 타이포그래피 스케일
+```tsx
+// ✅ 좋은 예 - 일관된 텍스트 크기
+<h1 className="text-3xl font-bold">메인 제목</h1>
+<h2 className="text-2xl font-semibold">섹션 제목</h2>
+<h3 className="text-xl font-medium">서브 제목</h3>
+<p className="text-base">본문</p>
+<p className="text-sm text-gray-600">보조 텍스트</p>
+<p className="text-xs text-gray-500">캡션</p>
+```
+
+### 3. 간격 시스템
+```tsx
+// ✅ 좋은 예 - 일관된 간격 사용
+<div className="p-4 m-2 space-y-4">
+  <div className="p-2">내용 1</div>
+  <div className="p-2">내용 2</div>
+</div>
+
+// ✅ 좋은 예 - 그리드 간격
+<div className="grid grid-cols-3 gap-4">
+  <div>아이템 1</div>
+  <div>아이템 2</div>
+  <div>아이템 3</div>
+</div>
 ```
 
 ## 애니메이션 및 트랜지션
 
-### 1. 기본 트랜지션
-```typescript
-// ✅ 좋은 예 - 부드러운 전환
-<button className="transition-colors hover:bg-primary/90">
+### 1. 호버 효과
+```tsx
+// ✅ 좋은 예 - 부드러운 호버 효과
+<button className="px-4 py-2 bg-blue-600 text-white rounded-md 
+                   hover:bg-blue-700 transition-colors duration-200">
   버튼
 </button>
 
-<div className="transition-all duration-300 hover:scale-105">
-  호버 효과
+// ✅ 좋은 예 - 변환 효과
+<div className="transform hover:scale-105 transition-transform duration-200">
+  호버 시 확대
 </div>
 ```
 
-### 2. 커스텀 애니메이션
-```typescript
-// ✅ 좋은 예 - 커스텀 애니메이션 사용
-<div className="animate-fade-in">
-  페이드인 효과
+### 2. 로딩 상태
+```tsx
+// ✅ 좋은 예 - 로딩 애니메이션
+<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+
+// ✅ 좋은 예 - 페이드 인 효과
+<div className="opacity-0 animate-fade-in">
+  페이드 인 콘텐츠
 </div>
-
-<div className="animate-slide-up">
-  슬라이드업 효과
-</div>
-```
-
-## 다크모드 지원
-
-### 1. 다크모드 클래스
-```typescript
-// ✅ 좋은 예 - 다크모드 지원
-<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
-  다크모드 지원 컨텐츠
-</div>
-```
-
-### 2. 조건부 다크모드 스타일
-```typescript
-// ✅ 좋은 예 - 다크모드 variant
-const cardVariants = cva(
-  "rounded-lg border p-6",
-  {
-    variants: {
-      theme: {
-        light: "bg-white border-gray-200",
-        dark: "bg-gray-900 border-gray-700",
-      }
-    }
-  }
-)
 ```
 
 ## 접근성 고려사항
 
 ### 1. 포커스 상태
-```typescript
-// ✅ 좋은 예 - 접근성 고려
-<button className="
-  focus:outline-none 
-  focus:ring-2 
-  focus:ring-primary 
-  focus:ring-offset-2
-">
+```tsx
+// ✅ 좋은 예 - 포커스 스타일
+<button className="px-4 py-2 bg-blue-600 text-white rounded-md 
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
   접근 가능한 버튼
 </button>
 ```
 
 ### 2. 색상 대비
-- 텍스트와 배경의 충분한 대비 확보
-- 색상만으로 정보를 전달하지 않기
+```tsx
+// ✅ 좋은 예 - 충분한 색상 대비
+<div className="bg-blue-600 text-white">높은 대비</div>
+<div className="bg-gray-100 text-gray-900">충분한 대비</div>
+
+// ❌ 나쁜 예 - 낮은 대비
+<div className="bg-gray-300 text-gray-400">낮은 대비</div>
+```
+
+## 커스텀 CSS 클래스
+
+### 1. 글로벌 스타일
+```css
+/* ✅ 좋은 예 - globals.css에 커스텀 클래스 정의 */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+```
+
+### 2. 컴포넌트별 스타일
+```tsx
+// ✅ 좋은 예 - cn 유틸리티 사용
+import { cn } from '@/lib/utils';
+
+<div className={cn(
+  "base-styles",
+  isActive && "active-styles",
+  className
+)}>
+  동적 스타일링
+</div>
+```
 
 ## 성능 최적화
 
 ### 1. 불필요한 클래스 제거
-```typescript
-// ✅ 좋은 예 - 필요한 클래스만 사용
+```tsx
+// ✅ 좋은 예 - 조건부 클래스
 <div className={cn(
   "base-classes",
-  isActive && "active-classes",
-  size === "large" && "large-classes"
+  isVisible && "visible-classes",
+  isActive && "active-classes"
 )}>
+  조건부 스타일링
+</div>
 ```
 
 ### 2. CSS-in-JS 대신 Tailwind 사용
-- 런타임 스타일 계산 최소화
-- 빌드 타임에 최적화된 CSS 생성
+```tsx
+// ✅ 좋은 예 - Tailwind 클래스 사용
+<div className="flex items-center justify-center p-4 bg-white rounded-lg">
+
+// ❌ 나쁜 예 - CSS-in-JS 사용
+<div style={{
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '16px',
+  backgroundColor: 'white',
+  borderRadius: '8px'
+}}>
+```

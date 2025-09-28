@@ -1,5 +1,5 @@
 ---
-globs: src/api/**/*,src/hooks/**/*,src/context/**/*
+globs: *.ts,*.tsx
 description: API 통합 및 데이터 관리 패턴 가이드
 ---
 

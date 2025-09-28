@@ -1,236 +1,204 @@
 ---
-globs: *.tsx,src/components/**/*
-description: React 컴포넌트 작성 및 구조 가이드
+globs: *.tsx,*.jsx
 ---
 
-# React 컴포넌트 작성 가이드
+# React 컴포넌트 작성 및 구조 가이드
 
 ## 컴포넌트 구조 패턴
 
-### 1. 페이지 레벨 컴포넌트
-페이지 레벨 컴포넌트는 [App.tsx](mdc:src/App.tsx)의 라우팅 시스템과 연동됩니다.
-
+### 1. 컴포넌트 파일 구조
 ```typescript
-// ✅ 좋은 예 - 페이지 컴포넌트 구조
-interface HomeProps {
-  currentPersona: PersonaResponse | null;
-  personas: PersonaResponse[];
-  scrapedJobs: Set<string>;
-  onNavigate: (page: Page, source?: NavigationSource) => void;
-  onPersonaSelect: (persona: PersonaResponse) => void;
-  onJobSelect: (jobId: string) => void;
-  onToggleScrap: (jobId: string) => void;
-}
-
-export function Home({
-  currentPersona,
-  personas,
-  scrapedJobs,
-  onNavigate,
-  onPersonaSelect,
-  onJobSelect,
-  onToggleScrap
-}: HomeProps) {
-  // 컴포넌트 로직
+// ✅ 좋은 예 - 컴포넌트 내부 구조 순서
+export function ComponentName() {
+  // 1. 상태 선언
+  const [state, setState] = useState();
+  
+  // 2. 커스텀 훅 사용
+  const { data, loading } = useCustomHook();
+  
+  // 3. 이벤트 핸들러
+  const handleClick = () => { };
+  
+  // 4. 사이드 이펙트
+  useEffect(() => { }, []);
+  
+  // 5. 렌더링
+  return <div>Content</div>;
 }
 ```
 
-### 2. UI 컴포넌트 (shadcn/ui 기반)
-`src/components/ui/` 디렉토리의 재사용 가능한 컴포넌트들은 shadcn/ui 패턴을 따릅니다.
+### 2. Props 인터페이스 정의
+- 모든 Props는 명확한 타입 정의
+- 옵셔널 Props는 `?` 사용
+- 이벤트 핸들러는 명확한 시그니처 정의
 
-```typescript
-// ✅ 좋은 예 - UI 컴포넌트 구조
-import { cn } from "@/lib/utils"
-import { cva, type VariantProps } from "class-variance-authority"
-
-const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-}
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-```
+### 3. 컴포넌트 분리 원칙
+- 단일 책임 원칙: 하나의 컴포넌트는 하나의 기능만 담당
+- 재사용성: 공통 UI 패턴은 별도 컴포넌트로 분리
+- 복잡한 컴포넌트는 작은 단위로 분해
 
 ## 상태 관리 패턴
 
-### 1. 로컬 상태 관리
+### 1. 로컬 상태 vs 전역 상태
 ```typescript
-// ✅ 좋은 예 - 명확한 초기값과 타입
-const [currentPage, setCurrentPage] = useState<Page>('home');
-const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
-const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+// ✅ 좋은 예 - 로컬 상태 사용
+const [isLoading, setIsLoading] = useState(false);
+const [formData, setFormData] = useState<FormData>({});
 
-// ❌ 나쁜 예 - 타입이 불명확
-const [currentPage, setCurrentPage] = useState('home');
-const [coverLetters, setCoverLetters] = useState([]);
+// ✅ 좋은 예 - 전역 상태는 Context나 커스텀 훅 사용
+const { currentPersona, selectPersona } = usePersona();
 ```
 
-### 2. 커스텀 훅 활용
-- [src/hooks/usePersona.ts](mdc:src/hooks/usePersona.ts): 페르소나 관련 로직
-- [src/hooks/useJobScrap.ts](mdc:src/hooks/useJobScrap.ts): 채용공고 스크랩 로직
-
+### 2. 상태 업데이트 패턴
 ```typescript
-// ✅ 좋은 예 - 커스텀 훅 사용
-const {
-  personas,
-  currentPersona,
-  createPersona,
-  selectPersona,
-} = usePersona();
+// ✅ 좋은 예 - 함수형 업데이트
+setItems(prev => [...prev, newItem]);
+setCount(prev => prev + 1);
 
-const {
-  toggleScrap,
-  getScrapedJobs
-} = useJobScrap();
+// ✅ 좋은 예 - 복잡한 상태 업데이트
+setFormData(prev => ({
+  ...prev,
+  [field]: value
+}));
 ```
 
-### 3. Context API 사용
-- [src/context/AuthContext.tsx](mdc:src/context/AuthContext.tsx): 인증 상태 관리
-- 전역 상태가 필요한 경우에만 Context 사용
+## 이벤트 핸들링
 
-## 이벤트 핸들링 패턴
-
-### 1. 콜백 함수 네이밍
+### 1. 이벤트 핸들러 네이밍
 ```typescript
-// ✅ 좋은 예 - 명확한 네이밍
-const handlePersonaComplete = async (persona: PersonaResponse) => {
-  setCurrentPage("persona-completed");
-  return persona;
-};
+// ✅ 좋은 예 - 명확한 핸들러 이름
+const handleSubmit = (e: FormEvent) => { };
+const handleJobSelect = (jobId: string) => { };
+const handleToggleScrap = (jobId: string) => { };
 
-const handleJobSelect = (jobId: string) => {
-  setSelectedJobId(jobId);
-  setCurrentPage("job-detail");
-};
-
-const handleToggleScrap = (jobId: string) => {
-  if (!currentPersona) return;
-  toggleScrap(jobId, currentPersona.persona_id, currentPersona.user_id);
-};
+// ❌ 나쁜 예 - 모호한 핸들러 이름
+const handle = () => { };
+const onClick = () => { };
 ```
 
-### 2. 조건부 로직 처리
+### 2. 이벤트 핸들러 구현
 ```typescript
-// ✅ 좋은 예 - 안전한 조건부 처리
-const handleInterviewStart = (session: InterviewSession) => {
-  setCurrentInterviewSession(session);
-  if (session.useVoiceInterview) {
-    setCurrentPage("voice-interview-questions");
-  } else {
-    setCurrentPage("interview-questions");
+// ✅ 좋은 예 - 에러 처리 포함
+const handleSubmit = async (data: FormData) => {
+  try {
+    setLoading(true);
+    await submitData(data);
+    // 성공 처리
+  } catch (error) {
+    setError(error.message);
+  } finally {
+    setLoading(false);
   }
 };
 ```
 
-## 컴포넌트 렌더링 패턴
+## 조건부 렌더링
 
-### 1. 조건부 렌더링
+### 1. 명확한 조건부 렌더링
 ```typescript
-// ✅ 좋은 예 - 명확한 조건부 렌더링
-const renderCurrentPage = () => {
-  switch (currentPage) {
-    case "home":
-      return (
-        <Home
-          currentPersona={currentPersona}
-          personas={personas}
-          scrapedJobs={getCurrentPersonaScrapedJobs()}
-          onNavigate={navigateTo}
-          onPersonaSelect={selectPersona}
-          onJobSelect={handleJobSelect}
-          onToggleScrap={handleToggleScrap}
-        />
-      );
-    case "login":
-      return (
-        <Auth
-          type={currentPage}
-          onNavigate={navigateTo}
-          onUserAuth={setIsNewUser}
-        />
-      );
-    default:
-      return <Home {...defaultProps} />;
-  }
-};
+// ✅ 좋은 예
+return (
+  <div>
+    {loading && <Spinner />}
+    {error && <ErrorMessage message={error} />}
+    {data && <DataDisplay data={data} />}
+    {!loading && !error && !data && <EmptyState />}
+  </div>
+);
+
+// ❌ 나쁜 예 - 복잡한 조건
+return (
+  <div>
+    {loading ? <Spinner /> : error ? <ErrorMessage /> : data ? <DataDisplay /> : <EmptyState />}
+  </div>
+);
 ```
 
-### 2. Props 전달 패턴
+## 성능 최적화
+
+### 1. 불필요한 리렌더링 방지
 ```typescript
-// ✅ 좋은 예 - 필요한 props만 전달
-<JobDetail
-  jobId={selectedJobId}
-  currentPersona={currentPersona}
-  scrapedJobs={getCurrentPersonaScrapedJobs()}
-  onNavigate={navigateTo}
-  onToggleScrap={handleToggleScrap}
-/>
+// ✅ 좋은 예 - useCallback으로 함수 메모이제이션
+const handleSubmit = useCallback((data: FormData) => {
+  onSubmit(data);
+}, [onSubmit]);
+
+// ✅ 좋은 예 - useMemo로 계산 메모이제이션
+const filteredData = useMemo(() => {
+  return data.filter(item => item.active);
+}, [data]);
 ```
-
-## 성능 최적화 패턴
-
-### 1. 메모이제이션 사용
-- `useMemo`: 계산 비용이 큰 값들
-- `useCallback`: 자식 컴포넌트에 전달되는 함수들
 
 ### 2. 컴포넌트 분리
-- 큰 컴포넌트는 기능별로 분리
-- 재사용 가능한 로직은 커스텀 훅으로 추출
-
-## 에러 처리 패턴
-
-### 1. 안전한 데이터 접근
 ```typescript
-// ✅ 좋은 예 - 안전한 접근
-const getCurrentPersonaScrapedJobs = () => {
-  return getScrapedJobs(currentPersona?.persona_id);
-};
-
-// ❌ 나쁜 예 - 안전하지 않은 접근
-const getCurrentPersonaScrapedJobs = () => {
-  return getScrapedJobs(currentPersona.persona_id);
+// ✅ 좋은 예 - 큰 컴포넌트를 작은 단위로 분리
+const PersonaCard = ({ persona }: { persona: PersonaResponse }) => {
+  return (
+    <Card>
+      <PersonaCardHeader persona={persona} />
+      <PersonaCardContent persona={persona} />
+      <PersonaCardActions persona={persona} />
+    </Card>
+  );
 };
 ```
 
-### 2. 기본값 제공
+## 에러 처리
+
+### 1. 컴포넌트 레벨 에러 처리
 ```typescript
-// ✅ 좋은 예 - 기본값 제공
-<PersonaCompleted
-  persona={currentPersona!}
-  onNavigate={navigateTo}
-  isNewUser={isNewUser}
-/>
+// ✅ 좋은 예 - 에러 상태 관리
+const [error, setError] = useState<string | null>(null);
+
+const handleSubmit = async (data: FormData) => {
+  try {
+    setError(null);
+    await submitData(data);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+  }
+};
+
+return (
+  <div>
+    {error && (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )}
+    {/* 폼 컨텐츠 */}
+  </div>
+);
+```
+
+## 접근성 (Accessibility)
+
+### 1. 시맨틱 HTML 사용
+```typescript
+// ✅ 좋은 예
+<main>
+  <section>
+    <h1>페이지 제목</h1>
+    <article>
+      <h2>섹션 제목</h2>
+    </article>
+  </section>
+</main>
+
+// ❌ 나쁜 예
+<div>
+  <div>
+    <div>페이지 제목</div>
+  </div>
+</div>
+```
+
+### 2. 키보드 접근성
+```typescript
+// ✅ 좋은 예 - 키보드 이벤트 처리
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    handleClick();
+  }
+};
 ```

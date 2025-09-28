@@ -1,6 +1,5 @@
 ---
 globs: *.ts,*.tsx
-description: TypeScript 코딩 스타일 및 베스트 프랙티스
 ---
 
 # TypeScript 코딩 스타일 가이드
