@@ -30,6 +30,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordings, setRecordings] = useState<Blob[]>([]);
+  const recordingsRef = useRef<Blob[]>([]);
   const [isQuestionPlaying, setIsQuestionPlaying] = useState(false);
   const [isPlayingRecording, setIsPlayingRecording] = useState(false);
   const [recordingUrls, setRecordingUrls] = useState<string[]>([]);
@@ -42,19 +43,30 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
 
+  const hasStartedFirstQuestionRef = useRef(false);
+
+  const pendingSubmitRef = useRef<((recording: Blob | null) => void) | null>(null);
+
   useEffect(() => {
     if (!session) {
+      hasStartedFirstQuestionRef.current = false;
+      pendingSubmitRef.current = null;
+      recordingsRef.current = [];
       setSessionState(null);
       setCurrentQuestionIndex(0);
       setRecordingState('idle');
       setTimeLeft(60);
       setIsTimerActive(false);
       setRecordings([]);
+      recordingsRef.current = [];
       setRecordingUrls([]);
       setIsQuestionPlaying(false);
       setIsPlayingRecording(false);
       return;
     }
+
+    hasStartedFirstQuestionRef.current = false;
+    pendingSubmitRef.current = null;
 
     setSessionState({
       ...session,
@@ -68,6 +80,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     setTimeLeft(60);
     setIsTimerActive(false);
     setRecordings([]);
+    recordingsRef.current = [];
     setRecordingUrls([]);
     setError(null);
   }, [session]);
@@ -104,14 +117,136 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     };
   }, [recordings]);
 
-  const proceedToNext = useCallback(async () => {
+
+
+
+const playQuestionAndStartRecording = useCallback(async (questionText: string) => {
+  if (!questionText) {
+    return;
+  }
+
+  if (recordingState === 'recording' || isQuestionPlaying) {
+    setError('녹음이 진행 중입니다. 녹음을 종료한 뒤 다시 시도해주세요.');
+    return;
+  }
+
+  setError(null);
+  pendingSubmitRef.current = null;
+
+  try {
+    // 음성 합성으로 질문 읽기
+    const utterance = new SpeechSynthesisUtterance(questionText);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.8;
+    utterance.pitch = 1;
+
+    speechUtteranceRef.current = utterance;
+    const targetQuestionIndex = currentQuestionIndex;
+
+    utterance.onstart = () => {
+      setIsQuestionPlaying(true);
+    };
+
+    utterance.onend = async () => {
+      setIsQuestionPlaying(false);
+
+      // 질문 읽기 완료 후 녹음 시작
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordingStreamRef.current = stream;
+
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+
+        const chunks: BlobPart[] = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = chunks.length > 0 ? new Blob(chunks, { type: 'audio/webm' }) : null;
+
+          if (blob) {
+            setRecordings((prev) => {
+              const updated = [...prev];
+              updated[targetQuestionIndex] = blob;
+              recordingsRef.current = updated;
+              return updated;
+            });
+          }
+
+          const submitAfterStop = pendingSubmitRef.current;
+          pendingSubmitRef.current = null;
+
+          // 스트림 정리
+          if (recordingStreamRef.current) {
+            recordingStreamRef.current.getTracks().forEach((track) => track.stop());
+            recordingStreamRef.current = null;
+          }
+
+          if (submitAfterStop) {
+            submitAfterStop(blob);
+          }
+        };
+
+        mediaRecorder.start();
+        setRecordingState('recording');
+        setIsTimerActive(true);
+
+      } catch (error) {
+        console.error('마이크 접근 실패:', error);
+        setError('마이크 접근 권한이 필요합니다.');
+      }
+    };
+
+    speechSynthesis.speak(utterance);
+  } catch (error) {
+    console.error('음성 합성 실패:', error);
+    setError('음성 재생에 실패했습니다.');
+  }
+}, [currentQuestionIndex, isQuestionPlaying, recordingState]);
+
+const stopRecording = useCallback(() => {
+    if (speechUtteranceRef.current) {
+      speechSynthesis.cancel();
+      setIsQuestionPlaying(false);
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setRecordingState('completed');
+      setIsTimerActive(false);
+    }
+  }, []);
+
+  const pauseRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setRecordingState('paused');
+      setIsTimerActive(false);
+    }
+  }, []);
+
+  const resumeRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setRecordingState('recording');
+      setIsTimerActive(true);
+    }
+  }, []);
+
+  
+const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
     if (!sessionState || !currentQuestion) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const currentRecording = recordings[currentQuestionIndex];
+      const currentRecording = overrideRecording ?? recordings[currentQuestionIndex] ?? recordingsRef.current[currentQuestionIndex];
       if (!currentRecording) {
         setError('녹음이 없습니다. 먼저 답변을 녹음해주세요.');
         return;
@@ -170,7 +305,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
               : question
           );
 
-        questionsWithAnswer.push({
+          questionsWithAnswer.push({
             id: response.question_id,
             questionNumber: response.question_number,
             question: response.question_text,
@@ -206,11 +341,23 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     if (!currentQuestion) return;
 
     if (recordingState === 'recording') {
+      pendingSubmitRef.current = (blob) => {
+        if (!blob) {
+          setError('녹음이 저장되지 않았습니다. 다시 시도해주세요.');
+          return;
+        }
+        proceedToNext(blob);
+      };
       stopRecording();
-      setTimeout(() => proceedToNext(), 500);
-    } else {
-      proceedToNext();
+      return;
     }
+
+    if (recordingState !== 'completed') {
+      setError('먼저 답변을 녹음해주세요.');
+      return;
+    }
+
+    proceedToNext();
   }, [currentQuestion, proceedToNext, recordingState, stopRecording]);
 
   const playRecording = (recordingUrl: string) => {
@@ -234,93 +381,9 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     });
   };
 
-  const playQuestionAndStartRecording = useCallback(async (questionText: string) => {
-    try {
-      // 음성 합성으로 질문 읽기
-      const utterance = new SpeechSynthesisUtterance(questionText);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
+  
 
-      speechUtteranceRef.current = utterance;
 
-      utterance.onstart = () => {
-        setIsQuestionPlaying(true);
-      };
-
-      utterance.onend = async () => {
-        setIsQuestionPlaying(false);
-        
-        // 질문 읽기 완료 후 녹음 시작
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          recordingStreamRef.current = stream;
-          
-          const mediaRecorder = new MediaRecorder(stream);
-          mediaRecorderRef.current = mediaRecorder;
-          
-          const chunks: BlobPart[] = [];
-          
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-              chunks.push(event.data);
-            }
-          };
-          
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const updatedRecordings = [...recordings];
-            updatedRecordings[currentQuestionIndex] = blob;
-            setRecordings(updatedRecordings);
-            
-            // 스트림 정리
-            if (recordingStreamRef.current) {
-              recordingStreamRef.current.getTracks().forEach(track => track.stop());
-              recordingStreamRef.current = null;
-            }
-          };
-          
-          mediaRecorder.start();
-          setRecordingState('recording');
-          setIsTimerActive(true);
-          
-        } catch (error) {
-          console.error('마이크 접근 실패:', error);
-          setError('마이크 접근 권한이 필요합니다.');
-        }
-      };
-
-      speechSynthesis.speak(utterance);
-      
-    } catch (error) {
-      console.error('음성 합성 실패:', error);
-      setError('음성 재생에 실패했습니다.');
-    }
-  }, [currentQuestionIndex, recordings]);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setRecordingState('completed');
-      setIsTimerActive(false);
-    }
-  }, []);
-
-  const pauseRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.pause();
-      setRecordingState('paused');
-      setIsTimerActive(false);
-    }
-  }, []);
-
-  const resumeRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
-      mediaRecorderRef.current.resume();
-      setRecordingState('recording');
-      setIsTimerActive(true);
-    }
-  }, []);
 
   // 타이머 효과
   useEffect(() => {
@@ -330,9 +393,16 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            // 1분 완료 시 자동으로 녹음 중지 후 다음 질문
-            stopRecording();
-            setTimeout(() => handleNextQuestion(), 500);
+            if (recordingState === 'recording') {
+              pendingSubmitRef.current = (blob) => {
+                if (!blob) {
+                  setError('녹음이 저장되지 않았습니다. 다시 시도해주세요.');
+                  return;
+                }
+                proceedToNext(blob);
+              };
+              stopRecording();
+            }
             return 0;
           }
           return prev - 1;
@@ -343,14 +413,19 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [handleNextQuestion, isTimerActive, recordingState, timeLeft, stopRecording]);
+  }, [isTimerActive, proceedToNext, recordingState, timeLeft, stopRecording]);
 
   // 컴포넌트 마운트 시 첫 질문 재생 및 녹음 시작
   useEffect(() => {
-    if (currentQuestion && currentQuestionIndex === 0) {
-      setTimeout(() => {
+    if (!currentQuestion) return;
+
+    if (currentQuestionIndex === 0 && !hasStartedFirstQuestionRef.current) {
+      hasStartedFirstQuestionRef.current = true;
+      const timer = setTimeout(() => {
         playQuestionAndStartRecording(currentQuestion.question);
       }, 1000);
+
+      return () => clearTimeout(timer);
     }
   }, [currentQuestion, currentQuestionIndex, playQuestionAndStartRecording]);
 
@@ -439,12 +514,17 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
                       variant="outline"
                       size="sm"
                       onClick={() => {
+                        if (recordingState === 'recording') {
+                          setError('녹음 중에는 질문을 다시 들을 수 없습니다.');
+                          return;
+                        }
+
                         if (speechUtteranceRef.current) {
                           speechSynthesis.cancel();
                         }
                         playQuestionAndStartRecording(currentQuestion.question);
                       }}
-                      disabled={isQuestionPlaying}
+                      disabled={isQuestionPlaying || recordingState === 'recording'}
                     >
                       <Volume2 className="h-4 w-4 mr-2" />
                       {isQuestionPlaying ? '재생 중...' : '질문 다시 듣기'}
@@ -458,7 +538,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
                     {recordingState === 'idle' && (
                       <Button
                         onClick={() => playQuestionAndStartRecording(currentQuestion.question)}
-                        disabled={isQuestionPlaying}
+                        disabled={isQuestionPlaying || recordingState === 'recording'}
                         className="bg-red-600 hover:bg-red-700"
                       >
                         <Mic className="h-4 w-4 mr-2" />

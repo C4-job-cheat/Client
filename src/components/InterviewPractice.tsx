@@ -140,13 +140,8 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
         useVoiceInterview
       };
 
-      // 음성 면접인 경우 안내 페이지로 이동, 아니면 바로 시작
-      if (useVoiceInterview) {
-        onStart(session);
-        onNavigate('voice-interview-guide');
-      } else {
-        onStart(session);
-      }
+      // 면접 시작
+      onStart(session);
     } catch (err) {
       console.error('면접 질문 생성 실패:', err);
       

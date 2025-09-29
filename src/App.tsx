@@ -11,7 +11,6 @@ import { CoverLetterDraft } from './components/CoverLetterDraft'
 import { InterviewHub } from './components/InterviewHub'
 import { InterviewPractice } from './components/InterviewPractice'
 import { InterviewQuestions } from './components/InterviewQuestions'
-import { VoiceInterviewGuide } from './components/VoiceInterviewGuide'
 import { VoiceInterviewQuestions } from './components/VoiceInterviewQuestions'
 import { InterviewResults } from './components/InterviewResults'
 import { ScrapedJobs } from './components/ScrapedJobs'
@@ -26,7 +25,6 @@ import type {
   CoverLetter,
   InterviewSession,
   NavigationSource,
-  PersonaData,
   PersonaResponse,
 } from "./types";
 
@@ -47,7 +45,6 @@ export default function App() {
   const {
     personas,
     currentPersona,
-    createPersona,
     selectPersona,
   } = usePersona();
 
@@ -236,7 +233,6 @@ export default function App() {
         return (
           <InterviewPractice
             currentPersona={currentPersona}
-            coverLetters={coverLetters}
             onNavigate={navigateTo}
             onStart={handleInterviewStart}
           />
@@ -247,14 +243,6 @@ export default function App() {
             session={currentInterviewSession}
             onNavigate={navigateTo}
             onComplete={handleInterviewComplete}
-          />
-        );
-      case "voice-interview-guide":
-        return (
-          <VoiceInterviewGuide
-            session={currentInterviewSession}
-            onNavigate={navigateTo}
-            onStart={() => navigateTo('voice-interview-questions')}
           />
         );
       case "voice-interview-questions":

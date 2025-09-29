@@ -16,7 +16,6 @@ export type Page =
   | "interview-hub"
   | "interview-practice"
   | "interview-questions"
-  | "voice-interview-guide"
   | "voice-interview-questions"
   | "interview-results";
 
