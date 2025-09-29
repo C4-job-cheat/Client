@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
 import {
   ArrowLeft,
   Trophy,
@@ -10,7 +9,6 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Lightbulb,
   RotateCcw,
   Home,
   Eye,
@@ -48,6 +46,13 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
     };
   }, [session]);
 
+  const totalQuestions = session?.totalQuestions ?? session?.questions.length ?? 0;
+  const totalTime = session?.totalTime ?? totalTimeSpent;
+  const averageAnswerTime = session?.averageAnswerTime ?? avgTimeSpent;
+  const averageAnswerLength = session?.averageAnswerLength ?? avgAnswerLength;
+  const sessionGrade = session?.grade;
+  const sessionStatus = session?.status;
+
   // 질문 상세 조회 API 호출 함수
   const fetchQuestionDetail = useCallback(async (question: InterviewSession['questions'][number]) => {
     if (!session) return;
@@ -57,11 +62,8 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
     
     try {
       const data = await fetchInterviewQuestionDetail(session.id, question.id, session.personaId);
-      
-      console.log('🔍 질문 상세 데이터:', data);
       setQuestionDetail(data);
-    } catch (err) {
-      console.error('질문 상세 조회 실패:', err);
+    } catch {
       setDetailError('질문 상세 정보를 불러오는데 실패했습니다.');
     } finally {
       setIsLoadingDetail(false);
@@ -110,23 +112,6 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
     if (score >= 60) return 'text-blue-600';
     if (score >= 40) return 'text-yellow-600';
     return 'text-red-600';
-  };
-
-  const getScoreGrade = (score: number) => {
-    if (score >= 90) return 'A+';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B+';
-    if (score >= 60) return 'B';
-    if (score >= 50) return 'C+';
-    if (score >= 40) return 'C';
-    return 'D';
-  };
-
-  const getScoreDescription = (score: number) => {
-    if (score >= 80) return '훌륭한 답변입니다! 실제 면접에서도 좋은 결과를 기대할 수 있어요.';
-    if (score >= 60) return '좋은 답변이에요. 몇 가지 개선점을 보완하면 더욱 완벽해질 것 같아요.';
-    if (score >= 40) return '기본기는 갖춰져 있어요. 조금 더 연습하면 훨씬 나아질 거예요.';
-    return '아직 부족한 부분이 많아요. 더 많은 연습이 필요합니다.';
   };
 
   const formatTime = (seconds: number) => {
@@ -365,72 +350,71 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
       <main className="px-6 py-8">
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Score Summary */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="p-6 text-center">
-              <Trophy className={`h-12 w-12 mx-auto mb-4 ${getScoreColor(session.score)}`} />
-              <div className={`text-4xl font-bold mb-2 ${getScoreColor(session.score)}`}>
-                {session.score}점
+          <div className="grid md:grid-cols-3 md:grid-rows-1 gap-6">
+            {/* Left - Score with Time and Answer Summary */}
+            <Card className="p-6 flex flex-col">
+              {/* Score Section */}
+              <div className="text-center mb-6">
+                <Trophy className={`h-12 w-12 mx-auto mb-4 ${getScoreColor(session.score)}`} />
+                <div className={`text-4xl font-bold mb-2 ${getScoreColor(session.score)}`}>
+                  {session.score}점
+                </div>
+                {sessionGrade && (
+                  <div className={`text-lg font-medium mb-2 ${getScoreColor(session.score)}`}>
+                    {sessionGrade} 등급
+                  </div>
+                )}
+                {sessionStatus && (
+                  <p className="text-sm text-gray-600">
+                    {sessionStatus === 'completed' ? '연습 세션을 완료했어요.' : sessionStatus}
+                  </p>
+                )}
               </div>
-              <div className={`text-lg font-medium mb-2 ${getScoreColor(session.score)}`}>
-                {getScoreGrade(session.score)} 등급
+
+              {/* Time Summary */}
+              <div className="mb-6">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <h3 className="text-sm font-medium text-gray-700">시간 요약</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">총 소요 시간</span>
+                    <span className="font-medium">{formatTime(Math.round(totalTime))}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">평균 답변 시간</span>
+                    <span className="font-medium">{formatTime(Math.round(averageAnswerTime))}</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-gray-600">
-                {getScoreDescription(session.score)}
-              </p>
+
+              {/* Answer Summary */}
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Target className="h-4 w-4 text-gray-400" />
+                  <h3 className="text-sm font-medium text-gray-700">답변 요약</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">총 질문 수</span>
+                    <span className="font-medium">{totalQuestions}개</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">평균 답변 길이</span>
+                    <span className="font-medium">{Math.round(averageAnswerLength)}자</span>
+                  </div>
+                </div>
+              </div>
             </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <Clock className="h-5 w-5 text-gray-400" />
-                <h3 className="font-medium">시간 분석</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">총 소요 시간</span>
-                  <span className="font-medium">{formatTime(totalTimeSpent)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">평균 답변 시간</span>
-                  <span className="font-medium">{formatTime(Math.round(avgTimeSpent))}</span>
-                </div>
-                <Progress value={(avgTimeSpent / 60) * 100} className="h-2" />
-                <p className="text-xs text-gray-500">
-                  권장 시간: 45초 내외
-                </p>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <Target className="h-5 w-5 text-gray-400" />
-                <h3 className="font-medium">답변 분석</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">총 질문 수</span>
-                  <span className="font-medium">{session.questions.length}개</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">평균 답변 길이</span>
-                  <span className="font-medium">{Math.round(avgAnswerLength)}자</span>
-                </div>
-                <Progress value={Math.min((avgAnswerLength / 200) * 100, 100)} className="h-2" />
-                <p className="text-xs text-gray-500">
-                  권장 길이: 100자 이상
-                </p>
-              </div>
-            </Card>
-          </div>
-
-          {/* Feedback */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Strengths */}
-            <Card className="p-6">
+            {/* Center - Strengths */}
+            <Card className="p-6 flex flex-col">
               <div className="flex items-center space-x-2 mb-4">
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <h3 className="font-medium text-green-700">잘한 점</h3>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 overflow-y-auto">
                 {session.feedback.strengths.map((strength, index) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
@@ -440,33 +424,17 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
               </div>
             </Card>
 
-            {/* Improvements */}
-            <Card className="p-6">
+            {/* Right - Improvements */}
+            <Card className="p-6 flex flex-col">
               <div className="flex items-center space-x-2 mb-4">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
                 <h3 className="font-medium text-orange-700">개선할 점</h3>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 overflow-y-auto">
                 {session.feedback.improvements.map((improvement, index) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
                     <p className="text-sm text-gray-700">{improvement}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Suggestions */}
-            <Card className="p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <Lightbulb className="h-5 w-5 text-blue-600" />
-                <h3 className="font-medium text-blue-700">제안사항</h3>
-              </div>
-              <div className="space-y-2">
-                {session.feedback.suggestions.map((suggestion, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">{suggestion}</p>
                   </div>
                 ))}
               </div>
@@ -538,37 +506,6 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
                               </div>
                               <div className="mt-2 text-sm text-gray-500">
                                 답변 길이: {question.answer?.length || 0}자
-                              </div>
-                            </div>
-
-                            {/* Quick Analysis */}
-                            <div className="grid md:grid-cols-2 gap-4">
-                              <div className="bg-green-50 p-4 rounded-lg">
-                                <h5 className="font-medium text-green-700 mb-2">잘한 점</h5>
-                                <div className="space-y-1">
-                                  <div className="flex items-start space-x-2">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                    <p className="text-sm text-gray-700">질문의 핵심을 이해했습니다.</p>
-                                  </div>
-                                  <div className="flex items-start space-x-2">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                    <p className="text-sm text-gray-700">구체적인 경험을 제시했습니다.</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="bg-orange-50 p-4 rounded-lg">
-                                <h5 className="font-medium text-orange-700 mb-2">개선할 점</h5>
-                                <div className="space-y-1">
-                                  <div className="flex items-start space-x-2">
-                                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                                    <p className="text-sm text-gray-700">더 구체적인 사례가 필요합니다.</p>
-                                  </div>
-                                  <div className="flex items-start space-x-2">
-                                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                                    <p className="text-sm text-gray-700">결론을 명확하게 정리해보세요.</p>
-                                  </div>
-                                </div>
                               </div>
                             </div>
 

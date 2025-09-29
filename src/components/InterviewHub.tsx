@@ -17,7 +17,6 @@ interface InterviewHubProps {
 
 export function InterviewHub({ 
   currentPersona,
-  interviewSessions, 
   onNavigate, 
   onSessionSelect 
 }: InterviewHubProps) {
@@ -55,16 +54,6 @@ export function InterviewHub({
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}시간 ${remainingMinutes}분` : `${hours}시간`;
-  };
-
-  const getScoreGrade = (score: number) => {
-    if (score >= 90) return 'A+';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B+';
-    if (score >= 60) return 'B';
-    if (score >= 50) return 'C+';
-    if (score >= 40) return 'C';
-    return 'D';
   };
 
   const featureConfig = {

@@ -42,6 +42,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
+  const questionAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const hasStartedFirstQuestionRef = useRef(false);
 
@@ -89,6 +90,15 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const currentQuestion = hasSession ? sessionState.questions[currentQuestionIndex] : null;
   const currentQuestionNumber = currentQuestion?.questionNumber ?? currentQuestionIndex + 1;
   const progress = hasSession ? (currentQuestionNumber / TOTAL_QUESTIONS) * 100 : 0;
+  const questionPrompt = currentQuestion?.question && currentQuestion.question.trim().length > 0
+    ? currentQuestion.question
+    : currentQuestion?.audioUrl
+      ? '질문 음성을 재생해 주세요.'
+      : '질문을 불러오지 못했습니다.';
+
+
+const currentRecordingBlob = recordings[currentQuestionIndex] ?? recordingsRef.current[currentQuestionIndex] ?? null;
+
 
   // 음성 면접 진행 상태 로그 (질문 변경 시에만 실행)
   useEffect(() => {
@@ -120,8 +130,10 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
 
 
 
+
+
 const playQuestionAndStartRecording = useCallback(async (questionText: string) => {
-  if (!questionText) {
+  if (!currentQuestion) {
     return;
   }
 
@@ -133,73 +145,140 @@ const playQuestionAndStartRecording = useCallback(async (questionText: string) =
   setError(null);
   pendingSubmitRef.current = null;
 
+  if (speechUtteranceRef.current) {
+    speechSynthesis.cancel();
+    speechUtteranceRef.current = null;
+  }
+
+  const startRecording = async (targetIndex: number) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStreamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      const chunks: BlobPart[] = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = chunks.length > 0 ? new Blob(chunks, { type: 'audio/webm' }) : null;
+
+        if (blob) {
+          setRecordings((prev) => {
+            const updated = [...prev];
+            updated[targetIndex] = blob;
+            recordingsRef.current = updated;
+            return updated;
+          });
+        }
+
+        const submitAfterStop = pendingSubmitRef.current;
+        pendingSubmitRef.current = null;
+
+        if (recordingStreamRef.current) {
+          recordingStreamRef.current.getTracks().forEach((track) => track.stop());
+          recordingStreamRef.current = null;
+        }
+
+        if (submitAfterStop) {
+          submitAfterStop(blob);
+        }
+      };
+
+      mediaRecorder.start();
+      setRecordingState('recording');
+      setIsTimerActive(true);
+    } catch (error) {
+      console.error('마이크 접근 실패:', error);
+      setError('마이크 접근 권한이 필요합니다.');
+    }
+  };
+
+  const audioUrl = currentQuestion.audioUrl;
+  const targetIndex = currentQuestionIndex;
+
+  if (audioUrl) {
+    try {
+      if (questionAudioRef.current) {
+        questionAudioRef.current.pause();
+        questionAudioRef.current = null;
+      }
+
+      const audio = new Audio(audioUrl);
+      questionAudioRef.current = audio;
+
+      audio.onplay = () => {
+        setIsQuestionPlaying(true);
+      };
+
+      audio.onended = async () => {
+        questionAudioRef.current = null;
+        setIsQuestionPlaying(false);
+        await startRecording(targetIndex);
+      };
+
+      audio.onerror = () => {
+        questionAudioRef.current = null;
+        setIsQuestionPlaying(false);
+        console.error('질문 음성 재생 실패: ', audioUrl);
+        setError('질문 음성을 재생할 수 없습니다. 텍스트로 안내합니다.');
+        speechSynthesis.cancel();
+        speechUtteranceRef.current = null;
+        if (questionText) {
+          const utterance = new SpeechSynthesisUtterance(questionText);
+          utterance.lang = 'ko-KR';
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+
+          speechUtteranceRef.current = utterance;
+
+          utterance.onstart = () => {
+            setIsQuestionPlaying(true);
+          };
+
+          utterance.onend = () => {
+            setIsQuestionPlaying(false);
+            startRecording(targetIndex);
+          };
+
+          speechSynthesis.speak(utterance);
+        }
+      };
+
+      await audio.play();
+      return;
+    } catch {
+      setError('질문 음성을 재생할 수 없습니다. 텍스트로 안내합니다.');
+      questionAudioRef.current = null;
+    }
+  }
+
+  if (!audioUrl && !questionText) {
+    setError('질문 데이터를 불러오지 못했습니다.');
+    return;
+  }
+
   try {
-    // 음성 합성으로 질문 읽기
     const utterance = new SpeechSynthesisUtterance(questionText);
     utterance.lang = 'ko-KR';
     utterance.rate = 0.8;
     utterance.pitch = 1;
 
     speechUtteranceRef.current = utterance;
-    const targetQuestionIndex = currentQuestionIndex;
 
     utterance.onstart = () => {
       setIsQuestionPlaying(true);
     };
 
-    utterance.onend = async () => {
+    utterance.onend = () => {
       setIsQuestionPlaying(false);
-
-      // 질문 읽기 완료 후 녹음 시작
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recordingStreamRef.current = stream;
-
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-
-        const chunks: BlobPart[] = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            chunks.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          const blob = chunks.length > 0 ? new Blob(chunks, { type: 'audio/webm' }) : null;
-
-          if (blob) {
-            setRecordings((prev) => {
-              const updated = [...prev];
-              updated[targetQuestionIndex] = blob;
-              recordingsRef.current = updated;
-              return updated;
-            });
-          }
-
-          const submitAfterStop = pendingSubmitRef.current;
-          pendingSubmitRef.current = null;
-
-          // 스트림 정리
-          if (recordingStreamRef.current) {
-            recordingStreamRef.current.getTracks().forEach((track) => track.stop());
-            recordingStreamRef.current = null;
-          }
-
-          if (submitAfterStop) {
-            submitAfterStop(blob);
-          }
-        };
-
-        mediaRecorder.start();
-        setRecordingState('recording');
-        setIsTimerActive(true);
-
-      } catch (error) {
-        console.error('마이크 접근 실패:', error);
-        setError('마이크 접근 권한이 필요합니다.');
-      }
+      startRecording(targetIndex);
     };
 
     speechSynthesis.speak(utterance);
@@ -207,11 +286,19 @@ const playQuestionAndStartRecording = useCallback(async (questionText: string) =
     console.error('음성 합성 실패:', error);
     setError('음성 재생에 실패했습니다.');
   }
-}, [currentQuestionIndex, isQuestionPlaying, recordingState]);
+}, [currentQuestion, currentQuestionIndex, isQuestionPlaying, recordingState]);
 
 const stopRecording = useCallback(() => {
     if (speechUtteranceRef.current) {
       speechSynthesis.cancel();
+      setIsQuestionPlaying(false);
+      speechUtteranceRef.current = null;
+    }
+
+    if (questionAudioRef.current) {
+      questionAudioRef.current.pause();
+      questionAudioRef.current.currentTime = 0;
+      questionAudioRef.current = null;
       setIsQuestionPlaying(false);
     }
 
@@ -263,25 +350,27 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
         time_taken: elapsedSeconds
       };
 
-      console.log('🔍 음성 답변 제출 요청:', {
-        ...requestPayload,
-        audio_file: `File(${currentRecording.size} bytes)`
-      });
-
       const response = await submitInterviewVoiceAnswer(requestPayload);
 
       if (isInterviewCompletedResponse(response)) {
         const completedSession: InterviewSession = {
           ...sessionState,
+          score: response.score,
+          grade: response.grade,
+          status: response.status,
+          totalQuestions: response.total_questions,
+          totalTime: response.total_time,
+          averageAnswerTime: response.average_answer_time,
+          averageAnswerLength: response.average_answer_length,
           questions: response.questions.map((q) => ({
             id: q.question_id,
             questionNumber: q.question_number,
-            question: q.question_text,
+            question: q.question_text ?? '',
+            audioUrl: q.audio_url,
             answer: q.answer_text,
             type: q.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
             timeSpent: q.time_taken
           })),
-          score: response.score,
           feedback: {
             strengths: response.final_good_points,
             improvements: response.final_improvement_points,
@@ -308,7 +397,8 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
           questionsWithAnswer.push({
             id: response.question_id,
             questionNumber: response.question_number,
-            question: response.question_text,
+            question: response.question_text ?? '',
+            audioUrl: response.audio_url,
             answer: '',
             type: response.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
             timeSpent: 0
@@ -326,11 +416,10 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
         setRecordingState('idle');
 
         setTimeout(() => {
-          playQuestionAndStartRecording(response.question_text);
+          playQuestionAndStartRecording(response.question_text ?? '');
         }, 1000);
       }
-    } catch (err) {
-      console.error('음성 답변 제출 실패:', err);
+    } catch {
       setError('답변 제출에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
@@ -360,26 +449,43 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
     proceedToNext();
   }, [currentQuestion, proceedToNext, recordingState, stopRecording]);
 
-  const playRecording = (recordingUrl: string) => {
-    if (!recordingUrl) return;
 
-    setIsPlayingRecording(true);
-    const audio = new Audio(recordingUrl);
+const playRecording = (recordingIndex: number) => {
+  const urlFromState = recordingUrls[recordingIndex];
+  const blob = recordingsRef.current[recordingIndex] ?? recordings[recordingIndex];
 
-    audio.onended = () => {
-      setIsPlayingRecording(false);
-    };
+  if (!urlFromState && !blob) {
+    setError('재생할 녹음이 없습니다. 다시 녹음해주세요.');
+    return;
+  }
 
-    audio.onerror = () => {
-      setIsPlayingRecording(false);
-      console.error('녹음 재생 중 오류가 발생했습니다.');
-    };
+  const playbackUrl = urlFromState ?? URL.createObjectURL(blob as Blob);
+  setIsPlayingRecording(true);
+  const audio = new Audio(playbackUrl);
 
-    audio.play().catch(error => {
-      setIsPlayingRecording(false);
-      console.error('녹음 재생 실패:', error);
-    });
+  audio.onended = () => {
+    setIsPlayingRecording(false);
+    if (!urlFromState && blob) {
+      URL.revokeObjectURL(playbackUrl);
+    }
   };
+
+  audio.onerror = () => {
+    setIsPlayingRecording(false);
+    if (!urlFromState && blob) {
+      URL.revokeObjectURL(playbackUrl);
+    }
+    console.error('녹음 재생 중 오류가 발생했습니다.');
+  };
+
+  audio.play().catch(error => {
+    setIsPlayingRecording(false);
+    if (!urlFromState && blob) {
+      URL.revokeObjectURL(playbackUrl);
+    }
+    console.error('녹음 재생 실패:', error);
+  });
+};
 
   
 
@@ -422,18 +528,22 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
     if (currentQuestionIndex === 0 && !hasStartedFirstQuestionRef.current) {
       hasStartedFirstQuestionRef.current = true;
       const timer = setTimeout(() => {
-        playQuestionAndStartRecording(currentQuestion.question);
+        playQuestionAndStartRecording(currentQuestion.question || questionPrompt);
       }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [currentQuestion, currentQuestionIndex, playQuestionAndStartRecording]);
+  }, [currentQuestion, currentQuestionIndex, playQuestionAndStartRecording, questionPrompt]);
 
   // 컴포넌트 언마운트 시 정리
   useEffect(() => {
     return () => {
       if (speechUtteranceRef.current) {
         speechSynthesis.cancel();
+      }
+      if (questionAudioRef.current) {
+        questionAudioRef.current.pause();
+        questionAudioRef.current = null;
       }
       if (recordingStreamRef.current) {
         recordingStreamRef.current.getTracks().forEach(track => track.stop());
@@ -505,7 +615,7 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
                 {/* Question Text */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-gray-900 leading-relaxed">
-                      {currentQuestion.question}
+                      {questionPrompt}
                   </h2>
                   
                   {/* Question Play Button */}
@@ -521,8 +631,14 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
 
                         if (speechUtteranceRef.current) {
                           speechSynthesis.cancel();
+                          speechUtteranceRef.current = null;
                         }
-                        playQuestionAndStartRecording(currentQuestion.question);
+                        if (questionAudioRef.current) {
+                          questionAudioRef.current.pause();
+                          questionAudioRef.current.currentTime = 0;
+                          questionAudioRef.current = null;
+                        }
+                        playQuestionAndStartRecording(currentQuestion.question || questionPrompt);
                       }}
                       disabled={isQuestionPlaying || recordingState === 'recording'}
                     >
@@ -537,7 +653,18 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
                   <div className="flex items-center space-x-4">
                     {recordingState === 'idle' && (
                       <Button
-                        onClick={() => playQuestionAndStartRecording(currentQuestion.question)}
+                        onClick={() => {
+                          if (speechUtteranceRef.current) {
+                            speechSynthesis.cancel();
+                            speechUtteranceRef.current = null;
+                          }
+                          if (questionAudioRef.current) {
+                            questionAudioRef.current.pause();
+                            questionAudioRef.current.currentTime = 0;
+                            questionAudioRef.current = null;
+                          }
+                          playQuestionAndStartRecording(currentQuestion.question || questionPrompt);
+                        }}
                         disabled={isQuestionPlaying || recordingState === 'recording'}
                         className="bg-red-600 hover:bg-red-700"
                       >
@@ -581,22 +708,22 @@ const proceedToNext = useCallback(async (overrideRecording?: Blob | null) => {
                           </>
                         )}
 
-                    {recordingState === 'completed' && recordings[currentQuestionIndex] && (
+                    {recordingState === 'completed' && currentRecordingBlob && (
                       <div className="flex items-center space-x-3">
-                            <Button
-                              variant="outline"
-                              onClick={() => playRecording(recordingUrls[currentQuestionIndex])}
-                              disabled={isPlayingRecording}
+                        <Button
+                          variant="outline"
+                          onClick={() => playRecording(currentQuestionIndex)}
+                          disabled={isPlayingRecording}
                         >
                           <Play className="h-4 w-4 mr-2" />
                           {isPlayingRecording ? '재생 중...' : '답변 듣기'}
-                            </Button>
+                        </Button>
                         <span className="text-sm text-green-600 font-medium">
                           ✓ 답변이 녹음되었습니다
                         </span>
-                          </div>
-                        )}
                       </div>
+                    )}
+                  </div>
 
                   {/* Recording Status */}
                   <div className="text-sm text-gray-600">

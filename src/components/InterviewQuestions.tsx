@@ -69,18 +69,6 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
   const currentQuestionNumber = currentQuestion?.questionNumber ?? currentQuestionIndex + 1;
   const progress = hasSession ? (currentQuestionNumber / TOTAL_QUESTIONS) * 100 : 0;
 
-  // 면접 진행 상태 로그 (질문 변경 시에만 실행)
-  useEffect(() => {
-    if (!sessionState) return;
-
-    console.log('🔍 면접 진행 상태:', {
-      questionNumber: currentQuestionNumber,
-      currentQuestionIndex,
-      progress: Math.round(progress),
-      sessionQuestionsLength: sessionState.questions.length
-    });
-  }, [currentQuestionNumber, sessionState, progress, currentQuestionIndex]);
-
   const handleNextQuestion = useCallback(async () => {
     if (!sessionState || !currentQuestion) return;
 
@@ -99,8 +87,6 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
         time_taken: elapsedSeconds
       };
 
-      console.log('🔍 답변 제출 요청:', requestData);
-
       const updatedAnswers = [...answers];
       updatedAnswers[currentQuestionIndex] = currentAnswer;
 
@@ -111,15 +97,22 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
 
         const completedSession: InterviewSession = {
           ...sessionState,
+          score: response.score,
+          grade: response.grade,
+          status: response.status,
+          totalQuestions: response.total_questions,
+          totalTime: response.total_time,
+          averageAnswerTime: response.average_answer_time,
+          averageAnswerLength: response.average_answer_length,
           questions: response.questions.map((q) => ({
             id: q.question_id,
             questionNumber: q.question_number,
-            question: q.question_text,
+            question: q.question_text ?? '',
+            audioUrl: q.audio_url,
             answer: q.answer_text,
             type: q.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
             timeSpent: q.time_taken
           })),
-          score: response.score,
           feedback: {
             strengths: response.final_good_points,
             improvements: response.final_improvement_points,
@@ -167,8 +160,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
         setTimeLeft(60);
         setIsTimerActive(true);
       }
-    } catch (err) {
-      console.error('답변 제출 실패:', err);
+    } catch {
       setError('답변 제출에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);

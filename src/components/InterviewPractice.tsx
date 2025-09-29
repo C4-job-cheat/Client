@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { Checkbox } from './ui/checkbox';
 import type { CheckedState } from '@radix-ui/react-checkbox';
 import { Label } from './ui/label';
-import { ArrowLeft, MessageCircle, FileText, User, Play, Mic } from 'lucide-react';
+import { ArrowLeft, MessageCircle, FileText, Play, Mic } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
 import { fetchInterviewPreparation } from '../api/services/interviewService';
 import type { Page, PersonaResponse, InterviewSession, InterviewQuestionGenerateRequest, InterviewQuestionGenerateResponse, InterviewPreparationResponse } from '../types';
@@ -34,7 +34,6 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
     
     try {
       const data = await fetchInterviewPreparation(currentPersona.persona_id);
-      
       console.log('🔍 면접 준비 데이터:', data);
       setPreparationData(data);
     } catch (err) {
@@ -105,19 +104,9 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
     };
 
     console.log('🔍 면접 질문 생성 요청:', requestData);
-    console.log('🔍 요청 상세 정보:', {
-      persona_id: currentPersona.persona_id,
-      cover_letter_id: useCoverLetter && selectedCoverLetterId ? selectedCoverLetterId : undefined,
-      use_voice: useVoiceInterview,
-      useCoverLetter,
-      selectedCoverLetterId,
-      useVoiceInterview
-    });
 
     try {
-      
       const { data } = await apiClient.post<InterviewQuestionGenerateResponse>('/api/interviews/questions/generate/', requestData);
-      
       console.log('🔍 면접 질문 생성 응답:', data);
 
       // 서버 응답을 InterviewSession 형태로 변환
@@ -129,7 +118,8 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
         questions: [{
           id: data.question.question_id,
           questionNumber: data.question.question_number,
-          question: data.question.question_text,
+          question: data.question.question_text ?? '',
+          audioUrl: data.question.audio_url,
           type: data.question.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
           timeSpent: 0,
           answer: ''
@@ -145,7 +135,6 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
     } catch (err) {
       console.error('면접 질문 생성 실패:', err);
       
-      // 400 에러 상세 정보 로그
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as any;
         if (axiosError.response?.status === 400) {
@@ -156,7 +145,6 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
             requestData: requestData
           });
           
-          // 서버에서 제공하는 에러 메시지가 있으면 사용
           if (axiosError.response.data?.error) {
             setError(`입력 데이터 오류: ${axiosError.response.data.error}`);
           } else {
@@ -194,130 +182,154 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
 
       {/* Main Content */}
       <main className="px-6 py-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Persona Info */}
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* 선택된 페르소나 */}
           <Card className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <User className="h-6 w-6 text-blue-600" />
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <MessageCircle className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">
-                  {preparationData?.persona_card.job_title || currentPersona.job_role}
-                </h2>
-                <p className="text-gray-600">
-                  {preparationData?.persona_card.school || currentPersona.school_name} · {preparationData?.persona_card.major || currentPersona.major}
-                </p>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Badge variant="secondary">
-                    {preparationData?.persona_card.job_category || currentPersona.job_category}
-                  </Badge>
-                  {preparationData?.persona_card.skills && preparationData.persona_card.skills.length > 0 && (
-                    <Badge variant="outline">{preparationData.persona_card.skills[0]}</Badge>
-                  )}
+                <h2 className="text-lg font-semibold text-gray-900">선택된 페르소나</h2>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-sm text-gray-600">{currentPersona.job_category}</span>
+                  <span className="text-sm text-gray-400">•</span>
+                  <span className="text-sm text-gray-600">{currentPersona.job_role || '신입'}</span>
                 </div>
               </div>
             </div>
           </Card>
 
-          {/* Interview Options */}
+          {/* 자기소개서 연동 */}
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-6">면접 설정</h3>
+            <h3 className="text-lg font-semibold mb-4">자기소개서 연동</h3>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="useCoverLetter"
+                checked={useCoverLetter}
+                onCheckedChange={(checked: CheckedState) => {
+                  setUseCoverLetter(checked as boolean);
+                  if (!checked) setSelectedCoverLetterId('');
+                }}
+              />
+              <Label htmlFor="useCoverLetter" className="text-base font-medium">
+                자기소개서 기반 질문 포함하기
+              </Label>
+            </div>
             
-            <div className="space-y-6">
-              {/* Cover Letter Option */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="useCoverLetter"
-                    checked={useCoverLetter}
-                    onCheckedChange={(checked: CheckedState) => {
-                      setUseCoverLetter(checked as boolean);
-                      if (!checked) setSelectedCoverLetterId('');
-                    }}
-                  />
-                  <Label htmlFor="useCoverLetter" className="text-base font-medium">
-                    자기소개서 기반 면접 연습
-                  </Label>
-                </div>
-                
-                {useCoverLetter && (
-                  <div className="ml-6 space-y-3">
-                    {availableCoverLetters.length > 0 ? (
-                      <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">자기소개서 선택</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {availableCoverLetters.map((coverLetter) => (
-                            <Card
-                              key={coverLetter.id}
-                              className={`p-4 cursor-pointer transition-all duration-200 ${
-                                selectedCoverLetterId === coverLetter.id
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                              onClick={() => setSelectedCoverLetterId(coverLetter.id)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-medium">{coverLetter.company_name}</h4>
-                                  <p className="text-sm text-gray-600">
-                                    {new Date(coverLetter.created_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <FileText className="h-4 w-4 text-gray-400" />
-                                  <Badge variant="outline" className="text-xs">
-                                    {coverLetter.style}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-yellow-800 text-sm">
-                          작성된 자기소개서가 없습니다. 먼저 자기소개서를 작성해주세요.
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => onNavigate('cover-letter')}
+            {useCoverLetter && (
+              <div className="mt-4 space-y-3">
+                {availableCoverLetters.length > 0 ? (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-600">자기소개서 선택</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {availableCoverLetters.map((coverLetter) => (
+                        <Card
+                          key={coverLetter.id}
+                          className={`p-4 cursor-pointer transition-all duration-200 ${
+                            selectedCoverLetterId === coverLetter.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => setSelectedCoverLetterId(coverLetter.id)}
                         >
-                          자기소개서 작성하기
-                        </Button>
-                      </div>
-                    )}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium">{coverLetter.company_name}</h4>
+                              <p className="text-sm text-gray-600">
+                                {new Date(coverLetter.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <FileText className="h-4 w-4 text-gray-400" />
+                              <Badge variant="outline" className="text-xs">
+                                {coverLetter.style}
+                              </Badge>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      작성된 자기소개서가 없습니다. 먼저 자기소개서를 작성해주세요.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => onNavigate('cover-letter')}
+                    >
+                      자기소개서 작성하기
+                    </Button>
                   </div>
                 )}
               </div>
+            )}
+          </Card>
 
-              {/* Voice Interview Option */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="useVoiceInterview"
-                    checked={useVoiceInterview}
-                    onCheckedChange={(checked: CheckedState) => setUseVoiceInterview(checked as boolean)}
-                  />
-                  <Label htmlFor="useVoiceInterview" className="text-base font-medium">
-                    음성 면접 연습
-                  </Label>
+          {/* 면접 방식 선택 */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">면접 방식 선택</h3>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="useVoiceInterview"
+                checked={useVoiceInterview}
+                onCheckedChange={(checked: CheckedState) => setUseVoiceInterview(checked as boolean)}
+              />
+              <Label htmlFor="useVoiceInterview" className="text-base font-medium">
+                음성으로 테스트 보기
+              </Label>
+              <Mic className="h-4 w-4 text-gray-500" />
+            </div>
+            
+            {useVoiceInterview && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Mic className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">음성 면접 모드</span>
                 </div>
-                
-                {useVoiceInterview && (
-                  <div className="ml-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Mic className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-800">음성 면접 모드</span>
-                    </div>
-                    <p className="text-sm text-green-700">
-                      실제 면접과 유사한 환경에서 음성으로 답변하는 연습을 할 수 있습니다.
-                    </p>
-                  </div>
-                )}
+                <div className="text-sm text-green-700 space-y-1">
+                  <p>• 실제 면접과 유사한 환경에서 음성으로 답변하는 연습을 할 수 있습니다</p>
+                  <p>• 마이크 권한이 필요하며, 조용한 환경에서 진행해주세요</p>
+                  <p>• 음성 인식 정확도를 위해 명확하게 발음해주세요</p>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* 면접 연습 안내 */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">면접 연습 안내</h3>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">1</span>
+                </div>
+                <p className="text-sm text-gray-700">총 10개 질문이 준비되어 있습니다.</p>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">2</span>
+                </div>
+                <p className="text-sm text-gray-700">각 질문마다 1분의 답변 시간이 주어집니다.</p>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">3</span>
+                </div>
+                <p className="text-sm text-gray-700">질문 유형: 자기소개서 기반, 직무 지식, AI 추천 질문</p>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">4</span>
+                </div>
+                <p className="text-sm text-gray-700">완료 후 100점 만점 평가와 상세 피드백을 제공합니다.</p>
               </div>
             </div>
           </Card>

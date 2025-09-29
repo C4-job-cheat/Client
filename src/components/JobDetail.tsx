@@ -14,6 +14,9 @@ interface JobDetailProps {
 
 export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onToggleScrap }: JobDetailProps) {
   const [isCoverLetterExpanded, setIsCoverLetterExpanded] = useState(false);
+  const [isMatchPointsExpanded, setIsMatchPointsExpanded] = useState(false);
+  const [isImprovementPointsExpanded, setIsImprovementPointsExpanded] = useState(false);
+  const [isGrowthSuggestionsExpanded, setIsGrowthSuggestionsExpanded] = useState(false);
   const [jobDetailData, setJobDetailData] = useState<JobDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +36,9 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
         }
       });
       
-      console.log('🔍 공고 상세 데이터:', data);
+      console.log('🔍 서버 응답 전체 데이터 (JSON):');
+      console.log(JSON.stringify(data, null, 2));
+      
       setJobDetailData(data);
     } catch (err) {
       console.error('공고 상세 조회 실패:', err);
@@ -140,7 +145,7 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
     };
     
     const koreanName = competencyMapping[competency] || competency.replace('_', ' ');
-    const myScore = jobDetailData.persona_competency_scores[koreanName] || 0;
+    const myScore = jobDetailData?.persona_competency_scores?.[koreanName] || 0;
     
     return {
       subject: koreanName,
@@ -152,23 +157,9 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with background image */}
-      <header 
-        className="relative bg-white border-b border-gray-200 px-6 py-4 shadow-sm"
-        style={{
-          backgroundImage: job.image_url ? `url(${job.image_url})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      >
-        {/* 배경 이미지 오버레이 */}
-        {job.image_url && (
-          <div className="absolute inset-0 bg-white/80"></div>
-        )}
-        
-        {/* 헤더 콘텐츠 */}
-        <div className="relative z-10 max-w-7xl mx-auto flex items-center justify-between">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Button
             variant="ghost"
             size="sm"
@@ -195,57 +186,59 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
       </header>
 
       {/* Main Content */}
-      <main className="px-32 py-6">
+      <main className="px-40 py-6">
         <div className="max-w-none mx-auto">
           {/* Job Header */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0">
-                {job.company_logo && (
-                  <img
-                    src={job.company_logo}
-                    alt={`${job.company_name} 로고`}
-                    className="w-12 h-12 object-cover rounded-lg"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h1 className="text-xl font-bold text-gray-900 mb-1">
-                      {job.title}
-                    </h1>
-                    <p className="text-base text-gray-600 mb-1">{job.company_name}</p>
-                    <div className="flex items-center space-x-3 text-xs text-gray-500">
-                      <span>{job.work_conditions.location}</span>
-                      <span>•</span>
-                      <span>{job.work_conditions.employment_type}</span>
-                      <span>•</span>
-                      <span>{job.work_conditions.position}</span>
-                      <span>•</span>
-                      <span>채용 {job.hires_count}명</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600 mb-1">
-                      {recommendation.recommendation_score}%
-                    </div>
-                    <div className="text-xs text-gray-500">매칭도</div>
-                  </div>
+          <div 
+            className="relative bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4"
+            style={{
+              backgroundImage: job.company_logo ? `url(${job.company_logo})` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
+            }}
+          >
+            {/* 왼쪽에서 오른쪽으로 흐릿해지는 그라데이션 오버레이 */}
+            {job.company_logo && (
+              <div 
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background: 'linear-gradient(to right, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.8) 100%)'
+                }}
+              ></div>
+            )}
+            
+            <div className="relative z-10 flex items-start justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 mb-1">
+                  {job.title}
+                </h1>
+                <p className="text-base text-gray-600 mb-1">{job.company_name}</p>
+                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                  <span>{job.work_conditions.location}</span>
+                  <span>•</span>
+                  <span>{job.work_conditions.employment_type}</span>
+                  <span>•</span>
+                  <span>{job.work_conditions.position}</span>
+                  <span>•</span>
+                  <span>채용 {job.hires_count}명</span>
                 </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600 mb-1">
+                  {recommendation.recommendation_score}%
+                </div>
+                <div className="text-xs text-gray-500">매칭도</div>
               </div>
             </div>
           </div>
 
-          {/* Main Layout - 4분할 기준 */}
-          <div className="grid grid-cols-4 gap-4">
-            {/* Left 3/4 Area */}
-            <div className="col-span-3 space-y-4">
+          {/* Main Layout - 10분할 기준 */}
+          <div className="grid grid-cols-10 gap-4">
+            {/* Left 7/10 Area */}
+            <div className="col-span-7 space-y-4">
               {/* Radar Chart */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">역량 매치 분석</h2>
                 <p className="text-sm text-gray-600 mb-3">내 역량과 공고 요구사항 비교</p>
                 <div className="h-48">
@@ -276,7 +269,7 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
               </div>
 
               {/* Tech Stack Match */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">기술 스택 매치</h2>
                 <p className="text-sm text-gray-600 mb-3">보유 기술과 요구 기술 비교</p>
                 
@@ -287,7 +280,7 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
                     {Array.from(personaSkills).slice(0, 10).map((skill, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 transition-colors"
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-blue-100/50 border border-blue-200 rounded-md hover:bg-blue-100/70 transition-colors"
                       >
                         {skill}
                       </span>
@@ -320,14 +313,14 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
               </div>
 
               {/* Job Details */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">공고 상세 정보</h2>
                 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Left Column */}
                   <div className="space-y-4">
                     {/* Required Qualifications */}
-                    <div className="bg-gray-50 rounded-lg p-3 h-40 flex flex-col">
+                    <div className="bg-gray-50 rounded-xl p-3 h-40 flex flex-col">
                       <h3 className="text-xs font-medium text-blue-700 mb-2">필수 요건</h3>
                       <ul className="space-y-1 flex-1">
                         {job.required_qualifications.map((qualification, index) => (
@@ -391,89 +384,165 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
               </div>
 
               {/* AI Cover Letter Preview */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">AI 맞춤 자기소개서</h2>
-                <p className="text-sm text-gray-600 mb-3">이 공고에 특화된 자기소개서 미리보기</p>
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900 text-sm">토스 프론트엔드 개발자 지원서</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsCoverLetterExpanded(!isCoverLetterExpanded)}
-                      className="text-xs px-2 py-1"
-                    >
-                      {isCoverLetterExpanded ? '접기' : '펼치기'}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-1">AI 맞춤 자기소개서</h2>
+                    <p className="text-sm text-gray-600">이 공고에 특화된 자기소개서 미리보기</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCoverLetterExpanded(!isCoverLetterExpanded)}
+                    className="text-sm px-3 py-2"
+                  >
+                    {isCoverLetterExpanded ? '접기' : '미리보기'}
+                  </Button>
+                </div>
+                
+                {isCoverLetterExpanded && (
+                  <div className="space-y-3">
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <h3 className="font-medium text-gray-900 text-sm mb-2">{job.company_name} 지원서</h3>
+                      <div className="text-xs text-gray-700 leading-relaxed">
+                        {jobDetailData.cover_letter_preview}
+                      </div>
+                    </div>
+                    <Button className="w-full" size="sm">
+                      완전한 자기소개서 작성하기
                     </Button>
                   </div>
-                  <div className={`text-xs text-gray-700 leading-relaxed ${isCoverLetterExpanded ? '' : 'line-clamp-6'}`}>
-                    {jobDetailData.cover_letter_preview}
-                  </div>
-                </div>
-                <Button className="w-full" size="sm">
-                  완전한 자기소개서 작성하기
-                </Button>
+                )}
               </div>
             </div>
 
-            {/* Right 1/4 Area - Sticky AI Recommendation */}
-            <div className="col-span-1">
+            {/* Right 3/10 Area - Sticky AI Recommendation */}
+            <div className="col-span-3">
               <div className="sticky top-6">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <h2 className="text-base font-semibold text-gray-900 mb-2">AI 추천 이유</h2>
                   <p className="text-xs text-gray-600 mb-3">추천 근거 요약</p>
                   
                   {/* Overall Matching Score */}
                   <div className="flex justify-center mb-4">
                     <div className="relative">
-                      <div className="w-20 h-20 rounded-full border-4 border-blue-200 flex items-center justify-center">
-                        <div className="text-xl font-bold text-blue-600">
-                          {recommendation.recommendation_score}%
+                      {/* Circular Progress Bar */}
+                      <div className="w-24 h-24 relative">
+                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                          {/* Background Circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            stroke="#e5e7eb"
+                            strokeWidth="8"
+                            fill="none"
+                          />
+                          {/* Progress Circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            stroke="#3b82f6"
+                            strokeWidth="8"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 40}`}
+                            strokeDashoffset={`${2 * Math.PI * 40 * (1 - recommendation.recommendation_score / 100)}`}
+                            className="transition-all duration-1000 ease-out"
+                          />
+                        </svg>
+                        {/* Score Text */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {recommendation.recommendation_score}
+                            </div>
+                            <div className="text-xs font-medium text-gray-500">%</div>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-center mt-1">
-                        <div className="text-xs font-medium text-gray-700">종합 매칭 점수</div>
+                      {/* Label */}
+                      <div className="text-center mt-2">
+                        <div className="text-sm font-semibold text-gray-800">종합 매칭 점수</div>
+                        <div className="text-xs text-gray-500">AI 분석 결과</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Match Points */}
                   <div className="mb-3">
-                    <h3 className="text-xs font-medium text-green-700 mb-1">매칭 강점</h3>
-                    <ul className="space-y-0.5">
-                      {recommendation.reason_summary.match_points.map((point, index) => (
-                        <li key={index} className="text-xs text-gray-600 flex items-start space-x-1">
-                          <span className="text-green-500 mt-0.5">✓</span>
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-xs font-medium text-green-700">매칭 강점</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsMatchPointsExpanded(!isMatchPointsExpanded)}
+                        className="text-xs px-1 py-0 h-auto text-green-700 hover:text-green-800"
+                      >
+                        {isMatchPointsExpanded ? '접기' : '펼치기'}
+                      </Button>
+                    </div>
+                    {isMatchPointsExpanded && (
+                      <ul className="space-y-0.5">
+                        {recommendation.reason_summary.match_points.map((point, index) => (
+                          <li key={index} className="text-xs text-gray-600 flex items-start space-x-1">
+                            <span className="text-green-500 mt-0.5">✓</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   {/* Improvement Points */}
                   <div className="mb-3">
-                    <h3 className="text-xs font-medium text-orange-700 mb-1">개선 포인트</h3>
-                    <ul className="space-y-0.5">
-                      {recommendation.reason_summary.improvement_points.map((point, index) => (
-                        <li key={index} className="text-xs text-gray-600 flex items-start space-x-1">
-                          <span className="text-orange-500 mt-0.5">•</span>
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-xs font-medium text-orange-700">개선 포인트</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsImprovementPointsExpanded(!isImprovementPointsExpanded)}
+                        className="text-xs px-1 py-0 h-auto text-orange-700 hover:text-orange-800"
+                      >
+                        {isImprovementPointsExpanded ? '접기' : '펼치기'}
+                      </Button>
+                    </div>
+                    {isImprovementPointsExpanded && (
+                      <ul className="space-y-0.5">
+                        {recommendation.reason_summary.improvement_points.map((point, index) => (
+                          <li key={index} className="text-xs text-gray-600 flex items-start space-x-1">
+                            <span className="text-orange-500 mt-0.5">•</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   {/* Growth Suggestions */}
                   <div className="mb-4">
-                    <h3 className="text-xs font-medium text-blue-700 mb-1">성장 제안</h3>
-                    <ul className="space-y-0.5">
-                      {recommendation.reason_summary.growth_suggestions.map((suggestion, index) => (
-                        <li key={index} className="text-xs text-gray-600 flex items-start space-x-1">
-                          <span className="text-blue-500 mt-0.5">→</span>
-                          <span>{suggestion}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-xs font-medium text-blue-700">성장 제안</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsGrowthSuggestionsExpanded(!isGrowthSuggestionsExpanded)}
+                        className="text-xs px-1 py-0 h-auto text-blue-700 hover:text-blue-800"
+                      >
+                        {isGrowthSuggestionsExpanded ? '접기' : '펼치기'}
+                      </Button>
+                    </div>
+                    {isGrowthSuggestionsExpanded && (
+                      <ul className="space-y-0.5">
+                        {recommendation.reason_summary.growth_suggestions.map((suggestion, index) => (
+                          <li key={index} className="text-xs text-gray-600 flex items-start space-x-1">
+                            <span className="text-blue-500 mt-0.5">→</span>
+                            <span>{suggestion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   {/* Action Buttons */}

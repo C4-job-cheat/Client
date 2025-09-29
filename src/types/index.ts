@@ -376,6 +376,7 @@ export interface NextQuestionResponse {
   question_number: number;
   question_type: string;
   question_text: string;
+  audio_url?: string;
 }
 
 // 면접 완료 응답 타입
@@ -384,6 +385,7 @@ export interface InterviewCompletedQuestion {
   question_number: number;
   question_type: string;
   question_text: string;
+  audio_url?: string;
   answer_text: string;
   time_taken: number;
 }
@@ -422,6 +424,7 @@ export interface InterviewQuestion {
   question_number: number;
   question_type: string;
   question_text: string;
+  audio_url?: string;
 }
 
 export interface InterviewQuestionGenerateResponse {
@@ -483,6 +486,7 @@ export interface InterviewQuestionDetailResponse {
   question_number: number;
   question_type: string;
   question_text: string;
+  audio_url?: string;
   answer_text: string;
   answer_length: number;
   time_taken: number;
@@ -503,15 +507,22 @@ export interface InterviewSession {
   useCoverLetter: boolean;
   coverLetterId?: string;
   useVoiceInterview?: boolean;
+  score: number;
+  grade?: string;
+  status?: string;
+  totalQuestions?: number;
+  totalTime?: number;
+  averageAnswerTime?: number;
+  averageAnswerLength?: number;
   questions: Array<{
     id: string;
     questionNumber: number;
     question: string;
+    audioUrl?: string;
     answer: string;
     type: "cover-letter" | "job-knowledge" | "ai-recommended";
     timeSpent: number;
   }>;
-  score: number;
   feedback: {
     strengths: string[];
     improvements: string[];
