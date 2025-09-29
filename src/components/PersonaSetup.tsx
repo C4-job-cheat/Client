@@ -4,7 +4,7 @@ import { Input } from './ui/input';
 // Select 관련 컴포넌트는 현재 단계에서 사용하지 않음
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
-import { ArrowLeft, ArrowRight, Check, FileText, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, FileText, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Page, PersonaEducationInfo, PersonaSkillsInfo, PersonaData, PersonaResponse } from '../types';
 import { usePersona } from '../hooks/usePersona';
 import { toast } from 'sonner';
@@ -96,12 +96,84 @@ const certifications = [
   '토익스피킹', '데이터분석전문가', '사회조사분석사', '기타'
 ];
 
+// 가이드 스텝 데이터
+const guideSteps = [
+  {
+    step: 1,
+    title: "프로필 아이콘 클릭",
+    description: "우측 하단 프로필 아이콘(본인 이름/이니셜)을 클릭하세요",
+    image: "/내보내기1.png"
+  },
+  {
+    step: 2,
+    title: "설정 선택",
+    description: "메뉴에서 '설정'을 선택하세요",
+    image: "/내보내기2.png"
+  },
+  {
+    step: 3,
+    title: "데이터 제어로 이동",
+    description: "설정 창에서 '데이터 제어' 메뉴로 이동하세요",
+    image: "/내보내기3.png"
+  },
+  {
+    step: 4,
+    title: "데이터 내보내기 클릭",
+    description: "'데이터 내보내기' 버튼을 클릭하세요",
+    image: "/내보내기4.png"
+  },
+  {
+    step: 5,
+    title: "내보내기 요청",
+    description: "안내 팝업에서 '내보내기 요청' 버튼을 누르세요",
+    image: "/내보내기5.png"
+  },
+  {
+    step: 6,
+    title: "이메일 대기",
+    description: "가입된 이메일로 다운로드 링크가 전송될 때까지 기다리세요 (몇 분~몇 시간 소요)",
+    image: "/내보내기6.png"
+  },
+  {
+    step: 7,
+    title: "이메일 확인",
+    description: "받은 편지함에서 OpenAI/ChatGPT로부터 온 메일을 확인하세요",
+    image: "/내보내기7.png"
+  },
+  {
+    step: 8,
+    title: "다운로드 버튼 클릭",
+    description: "메일 안의 '데이터 내보내기 다운로드' 버튼을 클릭하세요",
+    image: "/내보내기8.png"
+  },
+  {
+    step: 9,
+    title: "ZIP 파일 다운로드",
+    description: "ZIP 파일이 다운로드됩니다",
+    image: "/내보내기9.png"
+  },
+  {
+    step: 10,
+    title: "ZIP 파일 압축 해제",
+    description: "다운로드 받은 ZIP 파일의 압축을 해제하세요",
+    image: "/내보내기10.png"
+  },
+  {
+    step: 11,
+    title: "chat.html 파일 선택",
+    description: "압축 해제된 폴더에서 'chat.html' 파일을 찾아 업로드하세요",
+    image: "/내보내기11.png"
+  }
+];
+
 export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
   const { createPersona, isLoading } = usePersona();
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [currentGuideStep, setCurrentGuideStep] = useState(1);
   const [formData, setFormData] = useState<NewPersonaFormData>({
     jobCategory: '',
     specificJob: '',
@@ -416,7 +488,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               {/* 보유 기술 스택 */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">보유 기술 스택 (복수 선택 가능)</h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[20.5rem] max-h-[20.5rem] overflow-y-auto">
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[28rem] max-h-[28rem] overflow-y-auto">
                   <div className="flex flex-wrap gap-2">
                     {techStacks.map((tech) => (
                       <button
@@ -431,7 +503,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                           });
                         }}
                         className={`
-                          inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium
+                          inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium
                           transition-all duration-150 ease-out cursor-pointer select-none
                           hover:scale-105 hover:shadow-sm focus:outline-none
                           ${formData.skills.techStack.includes(tech)
@@ -451,7 +523,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               {/* 보유 자격증 */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">보유 자격증 (복수 선택 가능)</h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[20.5rem] max-h-[20.5rem] overflow-y-auto">
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[28rem] max-h-[28rem] overflow-y-auto">
                   <div className="flex flex-wrap gap-2">
                     {certifications.map((cert) => (
                       <button
@@ -466,7 +538,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                           });
                         }}
                         className={`
-                          inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium
+                          inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium
                           transition-all duration-150 ease-out cursor-pointer select-none
                           hover:scale-105 hover:shadow-sm focus:outline-none
                           ${formData.skills.certifications.includes(cert)
@@ -493,15 +565,20 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
             <div>
               <div className="flex items-center space-x-3 mb-2">
                 <div className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
-                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">파일을 업로드해주세요</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">ChatGPT의 내보내기를 통한 HTML 파일 업로드</h2>
               </div>
-              <p className="text-gray-600 text-sm lg:text-base leading-relaxed">
-                이력서나 포트폴리오 HTML 파일을 업로드하면 더 정확한 분석이 가능합니다
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-                <div className="text-xs text-gray-600">1) HTML 파일을 드래그하거나 클릭해서 선택하세요</div>
-                <div className="text-xs text-gray-600">2) 업로드 후 파일명을 확인하세요</div>
-                <div className="text-xs text-gray-600">3) 미리보기로 내용 일부를 확인할 수 있어요</div>
+              <div className="flex items-center justify-between">
+                <p className="text-gray-600 text-sm lg:text-base leading-relaxed">
+                  ChatGPT 대화 내용을 HTML 파일로 내보내서 업로드하면 더 정확한 분석이 가능합니다
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowGuideModal(true)}
+                  className="ml-4 whitespace-nowrap"
+                >
+                  보내는 방법 자세히 알기
+                </Button>
               </div>
             </div>
 
@@ -821,6 +898,145 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
 
       {/* Bottom spacer for fixed footer */}
       <div className="h-16" />
+
+      {/* ChatGPT 가이드 모달 */}
+      {showGuideModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">ChatGPT 대화 내보내기 가이드</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  단계 {currentGuideStep} / {guideSteps.length}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* 모달 콘텐츠 */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              {/* 특정 스텝들(1, 2, 3, 5, 6, 8, 9)은 2열 레이아웃, 나머지는 기존 레이아웃 */}
+              {[1, 2, 3, 5, 6, 8, 9].includes(currentGuideStep) ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                  {/* 이미지 (왼쪽) */}
+                  <div className="order-1 lg:order-1">
+                    <img
+                      src={guideSteps[currentGuideStep - 1].image}
+                      alt={`가이드 ${currentGuideStep}`}
+                      className="max-w-full h-auto mx-auto rounded-lg border shadow-lg"
+                      style={{ maxHeight: '400px' }}
+                    />
+                  </div>
+                  
+                  {/* 설명 (오른쪽) */}
+                  <div className="order-2 lg:order-2 text-center lg:text-left">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full text-lg font-bold mb-4">
+                      {currentGuideStep}
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {guideSteps[currentGuideStep - 1].title}
+                    </h3>
+                    <p className="text-gray-600 text-base leading-relaxed">
+                      {guideSteps[currentGuideStep - 1].description}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  {/* 현재 스텝 이미지 */}
+                  <div className="mb-6">
+                    <img
+                      src={guideSteps[currentGuideStep - 1].image}
+                      alt={`가이드 ${currentGuideStep}`}
+                      className="max-w-full h-auto mx-auto rounded-lg border shadow-lg"
+                      style={{ maxHeight: '400px' }}
+                    />
+                  </div>
+
+                  {/* 스텝 정보 */}
+                  <div className="mb-6">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full text-lg font-bold mb-4">
+                      {currentGuideStep}
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {guideSteps[currentGuideStep - 1].title}
+                    </h3>
+                    <p className="text-gray-600 text-base leading-relaxed">
+                      {guideSteps[currentGuideStep - 1].description}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 진행률 표시 */}
+              <div className="mt-6">
+                <div className="flex justify-center space-x-2">
+                  {guideSteps.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-3 h-3 rounded-full transition-colors ${
+                        index + 1 <= currentGuideStep
+                          ? 'bg-blue-600'
+                          : index + 1 === currentGuideStep + 1
+                          ? 'bg-blue-300'
+                          : 'bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (currentGuideStep > 1) {
+                    setCurrentGuideStep(currentGuideStep - 1);
+                  }
+                }}
+                disabled={currentGuideStep === 1}
+                className="flex items-center space-x-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>이전</span>
+              </Button>
+
+              <span className="text-sm text-gray-500">
+                {currentGuideStep} / {guideSteps.length}
+              </span>
+
+              {currentGuideStep === guideSteps.length ? (
+                <Button
+                  onClick={() => {
+                    setShowGuideModal(false);
+                    setCurrentGuideStep(1);
+                  }}
+                  className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="h-4 w-4" />
+                  <span>완료</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setCurrentGuideStep(currentGuideStep + 1)}
+                  className="flex items-center space-x-2"
+                >
+                  <span>다음</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

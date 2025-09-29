@@ -1,5 +1,3 @@
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
 import { User, GraduationCap, Award } from 'lucide-react';
 import type { PersonaResponse } from '../types';
 
@@ -12,14 +10,35 @@ interface PersonaCardProps {
 
 export function PersonaCard({ persona, className = '', compact = false, expanded = false }: PersonaCardProps) {
   const specificJob = persona.job_role || persona.job_category;
-  const techStack = persona.skills ?? [];
-  const certifications = persona.certifications ?? [];
+
+  // 배열 내 문자열 파싱
+  const parseData = (data: string[] | string | undefined): string[] => {
+    if (!data) return [];
+    if (Array.isArray(data) && data.length === 1 && typeof data[0] === 'string') {
+      try {
+        return JSON.parse(data[0]);
+      } catch {
+        return data[0].split(',').map(item => item.trim().replace(/['"]/g, ''));
+      }
+    }
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return data.split(',').map(item => item.trim().replace(/['"]/g, ''));
+      }
+    }
+    return [];
+  };
+
+  const techStack = parseData(persona.skills);
+  const certifications = parseData(persona.certifications);
 
   const renderBadges = (
     items: string[],
     limit: number,
     emptyLabel: string,
-    variant: 'outline' | 'secondary' = 'outline',
   ) => {
     if (!items.length) {
       return <span className="text-xs text-gray-400">{emptyLabel}</span>;
@@ -28,16 +47,15 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
     return (
       <>
         {items.slice(0, limit).map((item, index) => (
-          <Badge
+          <span
             key={`${item}-${index}`}
-            variant={variant}
-            className="text-xs"
+            className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 transition-colors"
           >
             {item}
-          </Badge>
+          </span>
         ))}
         {items.length > limit && (
-          <span className="px-2 py-0.5 rounded-md text-xs bg-gray-50 text-gray-700 border border-gray-200">
+          <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
             +{items.length - limit}
           </span>
         )}
@@ -47,28 +65,28 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
 
   if (compact) {
     return (
-      <Card className={`p-4 ${className}`}>
+      <div className={`bg-white border border-gray-200 rounded-lg shadow-sm p-4 ${className}`}>
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <User className="h-5 w-5 text-blue-600" />
+          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+            <User className="h-5 w-5 text-gray-600" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-900 truncate">{specificJob}</h3>
             <p className="text-sm text-gray-600 truncate">{persona.school_name ?? '학교 정보 없음'}</p>
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   if (expanded) {
     return (
-      <Card className={`p-6 lg:p-8 ${className}`}>
+      <div className={`bg-white border border-gray-200 rounded-lg shadow-sm p-6 lg:p-8 ${className}`}>
         <div className="space-y-6">
           {/* 헤더 */}
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="h-8 w-8 lg:h-10 lg:w-10 text-white" />
+            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-100 rounded-full flex items-center justify-center">
+              <User className="h-8 w-8 lg:h-10 lg:w-10 text-gray-600" />
             </div>
             <div className="flex-1">
               <h3 className="text-xl lg:text-2xl font-bold text-gray-900">{persona.job_category}</h3>
@@ -93,7 +111,9 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
                 {persona.major && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">전공</span>
-                    <Badge variant="outline">{persona.major}</Badge>
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-md">
+                      {persona.major}
+                    </span>
                   </div>
                 )}
               </div>
@@ -102,13 +122,13 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
             {/* 기술 스택 */}
             {techStack.length > 0 && (
               <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Award className="h-5 w-5 text-gray-400" />
-                <h4 className="font-semibold text-gray-900 lg:text-lg">기술 스택</h4>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {renderBadges(techStack, techStack.length, '선택 없음', 'secondary')}
-              </div>
+                <div className="flex items-center space-x-2">
+                  <Award className="h-5 w-5 text-gray-400" />
+                  <h4 className="font-semibold text-gray-900 lg:text-lg">기술 스택</h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {renderBadges(techStack, techStack.length, '선택 없음')}
+                </div>
               </div>
             )}
 
@@ -124,26 +144,24 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
                 </div>
               </div>
             )}
-
           </div>
-
         </div>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <div className={`bg-white border border-black rounded-xl shadow-md p-4 ${className}`}>
+    <div className={`bg-white border border-gray-200 rounded-lg shadow-sm p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900">내 페르소나</h3>
-        <span className="text-xs text-gray-400">현재 설정</span>
+        <h3 className="text-base font-semibold text-gray-900">내 페르소나</h3>
+        <span className="text-xs text-gray-500">현재 설정</span>
       </div>
 
-      <div className="space-y-2.5 text-sm">
+      <div className="space-y-3 text-sm">
         <div className="flex items-start justify-between">
-          <div className="flex-1 space-y-2.5">
+          <div className="flex-1 space-y-3">
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">희망 분야 / 직무</p>
+              <p className="text-xs font-medium text-gray-700 mb-1">희망 분야 / 직무</p>
               <p className="font-medium text-gray-900">
                 {persona.job_category}
                 {specificJob ? ` · ${specificJob}` : ''}
@@ -151,34 +169,34 @@ export function PersonaCard({ persona, className = '', compact = false, expanded
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">학교명</p>
+              <p className="text-xs font-medium text-gray-700 mb-1">학교명</p>
               <p className="font-medium text-gray-900">{persona.school_name || '학교 미설정'}</p>
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">전공</p>
+              <p className="text-xs font-medium text-gray-700 mb-1">전공</p>
               <p className="font-medium text-gray-900">{persona.major || '전공 미설정'}</p>
             </div>
           </div>
           {/* 프로필 사진을 4개 필드와 동일한 높이로 우측에 배치 */}
           <div className="ml-6 mr-2 mt-2">
-            <div className="w-32 h-40 bg-gradient-to-b from-blue-100 to-purple-100 rounded-3xl border border-black shadow-sm flex items-center justify-center">
+            <div className="w-32 h-40 bg-gray-100 rounded-lg border border-gray-200 shadow-sm flex items-center justify-center">
               <User className="h-10 w-10 text-gray-400" />
             </div>
           </div>
         </div>
 
         <div>
-          <p className="text-xs text-gray-500 mb-0.5">보유 기술 스택</p>
-          <div className="flex flex-wrap gap-1.5">
-                {renderBadges(techStack, 8, '선택 없음')}
+          <p className="text-xs font-medium text-gray-700 mb-2">보유 기술 스택</p>
+          <div className="flex flex-wrap gap-1">
+            {renderBadges(techStack, 8, '선택 없음')}
           </div>
         </div>
 
         <div>
-          <p className="text-xs text-gray-500 mb-0.5">보유 자격증</p>
-          <div className="flex flex-wrap gap-1.5">
-                {renderBadges(certifications, 6, '선택 없음')}
+          <p className="text-xs font-medium text-gray-700 mb-2">보유 자격증</p>
+          <div className="flex flex-wrap gap-1">
+            {renderBadges(certifications, 6, '선택 없음')}
           </div>
         </div>
       </div>

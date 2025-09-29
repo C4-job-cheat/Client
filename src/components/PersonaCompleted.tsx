@@ -17,14 +17,12 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    // 브라우저 알림 권한 요청 및 알림 표시
+    // 브라우저 알림만 표시 (토스트 알림 제거)
     const requestNotificationAndShow = async () => {
       try {
         // 브라우저가 알림을 지원하는지 확인
         if (!('Notification' in window)) {
           console.log('이 브라우저는 데스크톱 알림을 지원하지 않습니다.');
-          // 브라우저 알림을 지원하지 않는 경우 토스트 알림으로 대체
-          showToastNotification();
           return;
         }
 
@@ -34,30 +32,22 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
             showNotification();
-          } else if (permission === 'denied') {
-            // 권한이 거부된 경우 토스트 알림으로 대체
-            showToastNotification();
           }
         } else if (Notification.permission === 'granted') {
           // 이미 권한이 있으면 바로 알림 표시
           showNotification();
-        } else if (Notification.permission === 'denied') {
-          // 권한이 거부된 경우 토스트 알림으로 대체
-          showToastNotification();
         }
       } catch (error) {
         console.error('알림 권한 요청 중 오류:', error);
-        // 오류가 발생한 경우에도 토스트 알림으로 대체
-        showToastNotification();
       }
     };
 
     const showNotification = () => {
       const notification = new Notification('페르소나 생성 완료되었습니다!', {
         body: `${persona.job_category} 분야 페르소나가 성공적으로 생성되었습니다. 이제 취업인을 즐겨보세용가리리!`,
-        icon: '/favicon.ico', // 앱 아이콘 (public 폴더에 있어야 함)
-        tag: 'persona-completed', // 동일한 태그의 알림은 하나만 표시
-        requireInteraction: false, // 자동으로 사라지도록 설정
+        icon: '/favicon.ico',
+        tag: 'persona-completed',
+        requireInteraction: false,
       });
 
       // 알림 클릭 시 브라우저 탭으로 포커스 이동
@@ -72,39 +62,21 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
       }, 5000);
     };
 
-    const showToastNotification = () => {
-      toast.success('페르소나 생성 완료! 🎉', {
-        description: `${persona.job_category} 분야 페르소나가 성공적으로 생성되었습니다. 이제 맞춤 공고를 확인해보세요!`,
-        duration: 5000,
-        action: {
-          label: '공고 보기',
-          onClick: () => onNavigate('job-recommendations')
-        }
-      });
-    };
+    // 1초 후에 알림 표시
+    const notificationTimer = setTimeout(() => {
+      requestNotificationAndShow();
+    }, 1000);
 
-    // 첫 번째 단계에서만 3초 후에 알림 표시
-    let notificationTimer: ReturnType<typeof setTimeout> | null = null;
-    if (currentStep === 0) {
-      notificationTimer = setTimeout(() => {
-        requestNotificationAndShow();
-      }, 3000);
-    }
-
-    // 3초 후에 자동으로 다음 단계로 진행
+    // 1초 후에 자동으로 홈 페이지로 이동
     const stepTimer = setTimeout(() => {
-      if (currentStep < 2) {
-        setCurrentStep(currentStep + 1);
-      }
-    }, 3000);
+      onNavigate('home');
+    }, 1000);
 
     return () => {
-      if (notificationTimer) {
-        clearTimeout(notificationTimer);
-      }
+      clearTimeout(notificationTimer);
       clearTimeout(stepTimer);
     };
-  }, [currentStep, onNavigate, persona.job_category]);
+  }, [onNavigate, persona.job_category]);
 
   const steps = [
     {
@@ -319,81 +291,17 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Progress indicators */}
-      <div className="flex justify-center pt-6 lg:pt-12 pb-4 lg:pb-8">
-        <div className="flex space-x-2 lg:space-x-3">
-          {steps.map((_, index) => (
-            <div
-              key={index}
-              className={`w-2 h-2 lg:w-3 lg:h-3 rounded-full transition-colors duration-300 ${
-                index === currentStep ? 'bg-blue-600' : index < currentStep ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
+      {/* Content - 첫 번째 단계만 표시 */}
       <main className="px-4 sm:px-6 lg:px-8 pb-8 lg:pb-16">
         <div className="max-w-sm lg:max-w-4xl mx-auto">
           <motion.div
-            key={currentStep}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="min-h-[600px] lg:min-h-[500px] flex flex-col justify-center"
           >
-            {steps[currentStep].content}
+            {steps[0].content}
           </motion.div>
-
-          {/* Navigation - only show after first step */}
-          {currentStep > 0 && (
-            <div className="mt-8 lg:mt-12">
-              {/* Desktop Navigation */}
-              <div className="hidden lg:flex justify-center gap-6">
-                {currentStep < steps.length - 1 && (
-                  <Button
-                    onClick={handleNext}
-                    size="lg"
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-2xl"
-                  >
-                    계속하기
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                )}
-
-                <Button
-                  variant="ghost"
-                  onClick={handleSkip}
-                  className="px-8 py-3 text-gray-600 hover:text-gray-800"
-                >
-                  바로 추천 공고 보기
-                </Button>
-              </div>
-
-              {/* Mobile Navigation */}
-              <div className="lg:hidden space-y-3">
-                {currentStep < steps.length - 1 && (
-                  <Button
-                    onClick={handleNext}
-                    size="lg"
-                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl"
-                  >
-                    계속하기
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                )}
-
-                <Button
-                  variant="ghost"
-                  onClick={handleSkip}
-                  className="w-full text-gray-600"
-                >
-                  바로 추천 공고 보기
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>

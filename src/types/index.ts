@@ -228,27 +228,28 @@ export interface ScrapResponse {
 // 공고 상세 정보 API 응답 타입
 export interface JobDetailResponse {
   job_posting: {
+    ideal_candidate: string[];
+    preferred_qualifications: string[];
     benefits: string[];
-    job_category: string;
+    work_conditions: {
+      position: string;
+      employment_type: string;
+      location: string;
+    };
     company_logo: string;
-    title: string;
+    registration_date: string;
+    job_category: string;
+    preferred: string[];
     hires_count: number;
-    job_title: string;
-    required_qualifications: string[];
+    requirements: string[];
+    application_deadline: string;
+    job_description: string;
     company_name: string;
     required_competencies: Record<string, number>;
-    preferred_qualifications: string[];
-    application_deadline: string;
-    work_conditions: {
-      location: string;
-      employment_type: string;
-      position: string;
-    };
-    job_description: string;
-    registration_date: string;
-    preferred: string[];
-    requirements: string[];
-    ideal_candidate: string[];
+    required_qualifications: string[];
+    title: string;
+    job_title: string;
+    image_url?: string;
   };
   recommendation: {
     recommendation_score: number;
@@ -258,6 +259,7 @@ export interface JobDetailResponse {
       growth_suggestions: string[];
     };
   };
+  persona_competency_scores: Record<string, number>;
   cover_letter_preview: string;
 }
 
@@ -289,6 +291,10 @@ export interface JobRecommendationResponse {
     job_title: string;
     location: string;
     application_deadline: string;
+    image_url?: string;
+    background_image?: string;
+    cover_image?: string;
+    company_image?: string;
   }>;
   total_count: number;
 }

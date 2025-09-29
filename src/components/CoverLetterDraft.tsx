@@ -81,98 +81,93 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
       </header>
 
       {/* Main Content */}
-      <main className="px-6 py-8 overflow-hidden">
-        <div className="max-w-6xl mx-auto relative">
-          {/* Cover Letter Document */}
-          <div className={`w-3/5 mx-auto transition-all duration-700 ease-in-out ${
-            isAnalysisOpen
-              ? 'transform -translate-x-1/3'
-              : 'transform translate-x-0'
-          }`}>
-            <div className="bg-white border border-gray-300 shadow-sm min-h-[400px] rounded-lg">
-              {/* Document Header */}
-              <div className="border-b border-gray-200 px-8 py-4">
-                <div className="text-center">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">자기소개서</h2>
-                  <div className="text-sm text-gray-600">
-                    {coverLetter.targetCompany} • {new Date(coverLetter.createdAt).toLocaleDateString()}
+      <main className="px-6 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* 2열 Grid: 문서 2fr / 패널 1fr(최소 360px) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] gap-4">
+            
+            {/* Left: Cover Letter Document */}
+            <div>
+              <div className="bg-white border border-gray-300 shadow-sm min-h-[400px] rounded-lg">
+                {/* Document Header */}
+                <div className="border-b border-gray-200 px-8 py-4">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">자기소개서</h2>
+                    <div className="text-sm text-gray-600">
+                      {coverLetter.targetCompany} • {new Date(coverLetter.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Document Body */}
-              <div className="p-8">
-                <div className="leading-relaxed text-gray-800 text-base">
-                  {paragraphs.map((paragraph, index) => (
-                    <span
-                      key={index}
-                      onClick={() => handleParagraphClick(index.toString())}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        selectedParagraphId === index.toString()
-                          ? 'bg-blue-200/70 font-bold text-lg'
-                          : 'hover:bg-yellow-200/50'
-                      }`}
-                    >
-                      <span>{paragraph.paragraph || paragraph.text}</span>
-                      {index < paragraphs.length - 1 && ' '}
-                    </span>
-                  ))}
-                </div>
+                {/* Document Body */}
+                <div className="p-8">
+                  <div className="leading-relaxed text-gray-800 text-base">
+                    {paragraphs.map((paragraph, index) => (
+                      <span
+                        key={index}
+                        onClick={() => handleParagraphClick(index.toString())}
+                        className={`cursor-pointer transition-all duration-200 ${
+                          selectedParagraphId === index.toString()
+                            ? 'bg-blue-200/70'
+                            : 'hover:bg-yellow-100/50'
+                        }`}
+                      >
+                        <span>{paragraph.paragraph || paragraph.text}</span>
+                        {index < paragraphs.length - 1 && ' '}
+                      </span>
+                    ))}
+                  </div>
 
-                <div className="text-xs text-gray-400 text-right mt-8 border-t border-gray-100 pt-4">
-                  총 {paragraphs.reduce((sum, p) => sum + (p.paragraph || p.text).length, 0)}자
+                  <div className="text-xs text-gray-400 text-right mt-8 border-t border-gray-100 pt-4">
+                    총 {paragraphs.reduce((sum, p) => sum + (p.paragraph || p.text).length, 0)}자
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right: Content Analysis Panel */}
-          <div className={`absolute top-0 right-0 w-2/5 h-[400px] transition-all duration-700 ease-in-out ${
-            isAnalysisOpen
-              ? 'transform translate-x-0 opacity-100'
-              : 'transform translate-x-full opacity-0'
-          }`}>
-            <Card className="h-full flex flex-col ml-4">
-              {/* Close Button */}
-              <div className="flex justify-end p-2">
-                <button
-                  onClick={() => setIsAnalysisOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {selectedParagraph ? (
-                <>
-                  <div className="border-b border-gray-200 px-6 py-4">
-                    <p className="text-lg font-bold text-gray-900 leading-relaxed italic">
-                      "{selectedParagraph.paragraph || selectedParagraph.text}"
-                    </p>
+            {/* Right: Content Analysis Panel (스크롤 따라오는 sticky) */}
+            <aside
+              className={`hidden lg:block transition-opacity duration-300 ${
+                isAnalysisOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              {/* sticky는 래퍼에 주고, 헤더 높이 반영해서 top 조정 (예: 56px ≈ top-14) */}
+              <div className="sticky top-14 self-start">
+                <Card className="min-h-[200px] max-h-[calc(100vh-4rem)] overflow-auto flex flex-col bg-blue-100/30 border-blue-200">
+                  {/* Close Button */}
+                  <div className="flex justify-end p-2">
+                    <button
+                      onClick={() => setIsAnalysisOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
 
-                  <div className="flex-1 p-6">
-                    <div>
-                      <div className="text-sm text-gray-700 mb-2 font-medium">구성 요소</div>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {selectedParagraph.reason || selectedParagraph.explanation}
+                  {selectedParagraph ? (
+                    <div className="flex-1 p-6 pt-1">
+                      <div>
+                        <div className="text-sm text-gray-700 mb-2 font-bold">인사이트</div>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {selectedParagraph.reason || selectedParagraph.explanation}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                      <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                      <h4 className="font-medium text-gray-700 mb-2">문단을 선택해주세요</h4>
+                      <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+                        문단을 클릭하면<br />
+                        상세 분석을 확인할 수 있습니다.
                       </p>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                  <FileText className="h-12 w-12 text-gray-300 mb-4" />
-                  <h4 className="font-medium text-gray-700 mb-2">문단을 선택해주세요</h4>
-                  <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
-                    문단을 클릭하면<br />
-                    상세 분석을 확인할 수 있습니다.
-                  </p>
-                </div>
-              )}
-            </Card>
+                  )}
+                </Card>
+              </div>
+            </aside>
           </div>
         </div>
       </main>

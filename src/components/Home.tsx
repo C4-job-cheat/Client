@@ -40,10 +40,14 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
   return (
     <div className="min-h-screen">
       {/* Floating Header */}
-      <header className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-5xl px-6">
+      <header className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-5xl px-6">
         <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-full px-6 py-3 shadow-lg flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <h1 className="text-lg font-semibold text-gray-900">취업인</h1>
+            <img
+              src="/job_cheat_LOGO.svg"
+              alt="취업인 로고"
+              className="h-8 w-8"
+            />
             <div className="hidden md:flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -112,26 +116,18 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
       {/* Main Content */}
       <main className="pt-24">
         {/* Hero Section - Twenty.com Style */}
-        <section className="h-[calc(100vh-100px)] flex flex-col items-center justify-center px-6 bg-twenty-neutral relative overflow-hidden pt-6">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-65" style={{ WebkitMaskImage: 'linear-gradient(185deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 22%, rgba(0,0,0,0.35) 48%, rgba(0,0,0,0.75) 72%, rgba(0,0,0,1) 100%)', maskImage: 'linear-gradient(185deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 22%, rgba(0,0,0,0.35) 48%, rgba(0,0,0,0.75) 72%, rgba(0,0,0,1) 100%)' }}>
-            <div 
-              className="w-full h-full"
-              style={{
-                position: 'absolute',
-                top: '-15%',
-                left: '-20%',
-                width: '160%',
-                height: '160%',
-                backgroundImage: `url('https://framerusercontent.com/images/nqEmdwe7yDXNsOZovuxG5zvj2E.png')`,
-                backgroundSize: 'auto 20px',
-                backgroundRepeat: 'repeat',
-                transform: 'matrix(0.961262, 0.275637, -0.275637, 0.961262, 0, 0)'
-              }}
+        <section className="h-[calc(100vh-100px)] flex flex-col items-center justify-center px-6 bg-white relative overflow-hidden pt-6">
+          
+          
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <img
+              src="/job_cheat_LOGO.svg"
+              alt="취업인 로고"
+              className="w-24 h-24 md:w-32 md:h-32"
             />
           </div>
-          
-          
+
           <div className="relative max-w-md mx-auto space-y-6 text-center">
             <div className="space-y-4">
               <h1 className="font-twenty text-3xl md:text-5xl font-bold text-twenty-primary leading-tight">
@@ -139,12 +135,6 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
                 <br />
                 알고있다.
               </h1>
-              
-              <p className="font-twenty text-base md:text-lg text-twenty-secondary">
-                AI가 분석한 맞춤형 채용공고로 
-                <br />
-                당신의 꿈을 현실로 만들어보세요
-              </p>
             </div>
             
             <Button
@@ -159,13 +149,7 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
 
         {/* Scraped Jobs Section with Background */}
         {showScrapedJobs && (
-          <section 
-            className="relative px-6 pb-20 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url('https://framerusercontent.com/images/PFK7w4J7AQNXaDkPoE1teXJELY.png')`
-            }}
-          >
-            <div className="absolute inset-0 bg-white/85"></div>
+          <section className="relative px-6 pb-20 bg-white">
             <div className="relative max-w-md mx-auto">
               <div className="flex items-center space-x-2 mb-6">
                 <Bookmark className="h-5 w-5 text-blue-600" />

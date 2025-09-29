@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { ArrowLeft, Bookmark, Clock, Info, Brain, Target, Zap, BarChart } from 'lucide-react';
+import { ArrowLeft, Bookmark, Clock, Info, Target, BarChart } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { PersonaCardHeader } from './PersonaCardHeader';
 import { apiClient } from '../api/apiClient';
@@ -60,7 +60,7 @@ function CapabilityRadarChart({
               stroke="#3B82F6"
               fill="#3B82F6"
               fillOpacity={0.3}
-              onClick={(data) => onCapabilityClick(data.subject)}
+              onClick={(data: any) => onCapabilityClick(data.subject)}
               className="cursor-pointer"
             />
             <RechartsTooltip />
@@ -71,44 +71,43 @@ function CapabilityRadarChart({
   );
 }
 
-// AI 종합 분석 캐러셀 컴포넌트
+// AI 역량 분석 컴포넌트 (버튼 선택 방식)
 function AIAnalysisSummary({ 
-  competencyData 
+  competencyData,
+  selectedCapability,
+  onCapabilitySelect
 }: { 
   competencyData: Record<string, { score: number; score_explanation: string; key_insights: string[]; evaluated_at: string; }>;
+  selectedCapability: string | null;
+  onCapabilitySelect: (capability: string) => void;
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // 각 역량별 색상 정의
+  const capabilityColors = [
+    { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: 'text-blue-600', progress: 'bg-blue-500' },
+    { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: 'text-green-600', progress: 'bg-green-500' },
+    { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: 'text-purple-600', progress: 'bg-purple-500' },
+    { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', icon: 'text-orange-600', progress: 'bg-orange-500' },
+    { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', icon: 'text-pink-600', progress: 'bg-pink-500' },
+    { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', icon: 'text-indigo-600', progress: 'bg-indigo-500' },
+    { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700', icon: 'text-teal-600', progress: 'bg-teal-500' },
+    { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-600', progress: 'bg-red-500' }
+  ];
 
-  const analysisData = Object.entries(competencyData).map(([capability, data]) => ({
+  const capabilities = Object.entries(competencyData).map(([capability, data], index) => ({
+    key: capability,
     title: capability.replace('_', ' '),
     score: data.score,
     color: data.score >= 70 ? 'text-green-600' : data.score >= 40 ? 'text-yellow-600' : 'text-red-600',
     borderColor: data.score >= 70 ? 'border-green-600' : data.score >= 40 ? 'border-yellow-600' : 'border-red-600',
     iconColor: data.score >= 70 ? 'text-green-600' : data.score >= 40 ? 'text-yellow-600' : 'text-red-600',
-    icon: Target,
     summary: data.score_explanation,
-    details: data.key_insights.map(insight => `✓ ${insight}`)
+    details: data.key_insights.map(insight => `✓ ${insight}`),
+    themeColor: capabilityColors[index % capabilityColors.length]
   }));
 
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index);
-  };
-
-  // currentIndex가 유효한 범위를 벗어나면 자동으로 조정
-  useEffect(() => {
-    if (analysisData.length > 0 && currentIndex >= analysisData.length) {
-      setCurrentIndex(0);
-    }
-  }, [analysisData.length, currentIndex]);
-
-  // 데이터가 없거나 인덱스가 유효하지 않은 경우 처리
-  if (analysisData.length === 0) {
+  if (capabilities.length === 0) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center space-x-2 mb-4">
-          <Brain className="h-5 w-5 text-purple-600" />
-          <h3 className="text-lg font-semibold">AI 역량 분석</h3>
-        </div>
         <div className="flex-1 flex items-center justify-center">
           <p className="text-gray-500">역량 분석 데이터가 없습니다.</p>
         </div>
@@ -116,54 +115,66 @@ function AIAnalysisSummary({
     );
   }
 
-  // currentIndex가 유효한 범위를 벗어난 경우 0으로 리셋
-  const validIndex = currentIndex >= analysisData.length ? 0 : currentIndex;
-  const currentItem = analysisData[validIndex];
+  const selectedData = selectedCapability 
+    ? capabilities.find(cap => cap.key === selectedCapability) || capabilities[0]
+    : capabilities[0];
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center space-x-2 mb-4">
-        <Brain className="h-5 w-5 text-purple-600" />
-        <h3 className="text-lg font-semibold">AI 역량 분석</h3>
-      </div>
-
-      <div className="flex-1 space-y-4">
-        {/* 현재 분석 항목 */}
-        <div className={`p-4 rounded-lg border-2 ${currentItem.borderColor} bg-white`}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-2">
-              <currentItem.icon className={`h-5 w-5 ${currentItem.iconColor}`} />
-              <h4 className="font-semibold text-gray-900">{currentItem.title}</h4>
-            </div>
-            <div className={`text-2xl font-bold ${currentItem.color}`}>
-              {currentItem.score}점
-            </div>
-          </div>
-          
-          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-            {currentItem.summary}
-          </p>
-          
-          <div className="space-y-1">
-            {currentItem.details.map((detail, index) => (
-              <p key={index} className="text-xs text-gray-600">
-                {detail}
-              </p>
-            ))}
-          </div>
+      <div className="flex-1 flex gap-4">
+        {/* 좌측: 역량 선택 버튼들 */}
+        <div className="w-1/3 space-y-2">
+          {capabilities.map((capability) => (
+            <button
+              key={capability.key}
+              onClick={() => onCapabilitySelect(capability.key)}
+              className={`w-full text-left p-3 rounded-md border transition-colors ${
+                selectedCapability === capability.key
+                  ? `${capability.themeColor.border} ${capability.themeColor.bg} ${capability.themeColor.text}`
+                  : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium">{capability.title}</span>
+                <span className={`text-xs font-bold ${capability.color}`}>
+                  {capability.score}점
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-1">
+                <div 
+                  className={`h-1 rounded-full ${capability.themeColor.progress}`}
+                  style={{ width: `${capability.score}%` }}
+                />
+              </div>
+            </button>
+          ))}
         </div>
 
-        {/* 슬라이드 인디케이터 */}
-        <div className="flex space-x-2 justify-center">
-          {analysisData.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === validIndex ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
-            />
-          ))}
+        {/* 우측: 선택된 역량 상세 정보 */}
+        <div className="flex-1">
+          <div className={`p-2 rounded-lg border-2 ${selectedData.themeColor.border} bg-white h-full`}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center space-x-2">
+                <Target className={`h-3 w-3 ${selectedData.themeColor.icon}`} />
+                <h4 className={`text-sm font-semibold ${selectedData.themeColor.text}`}>{selectedData.title}</h4>
+              </div>
+              <div className={`text-sm font-bold ${selectedData.color}`}>
+                {selectedData.score}점
+              </div>
+            </div>
+            
+            <p className={`text-sm font-semibold text-gray-700 mb-1.5 leading-relaxed`}>
+              {selectedData.summary}
+            </p>
+            
+            <div className="space-y-0.5">
+              {selectedData.details.map((detail, index) => (
+                <p key={index} className={`text-xs ${selectedData.themeColor.text}`}>
+                  {detail}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -181,7 +192,7 @@ function FinalEvaluation({
       <div className="flex items-start space-x-4">
         <div className="flex-shrink-0">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
-            <Brain className="w-6 h-6 text-blue-600" />
+            <Target className="w-6 h-6 text-blue-600" />
           </div>
         </div>
         <div className="flex-1">
@@ -199,6 +210,7 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
   const [recommendationData, setRecommendationData] = useState<JobRecommendationResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCapability, setSelectedCapability] = useState<string | null>(null);
 
   // API 호출 함수
   const fetchRecommendations = useCallback(async () => {
@@ -208,14 +220,6 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
     setError(null);
     
     try {
-      console.log('🚀 API 요청 시작:', {
-        url: '/api/job-search/recommendations/',
-        params: {
-          user_id: currentPersona.user_id,
-          persona_id: currentPersona.persona_id
-        }
-      });
-      
       const { data } = await apiClient.get<JobRecommendationResponse>('/api/job-search/recommendations/', {
         params: {
           user_id: currentPersona.user_id,
@@ -223,67 +227,18 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
         }
       });
       
-      console.log('✅ 서버 응답 성공!');
-      console.log('📊 전체 응답 데이터:', data);
-      
-      // persona_card 데이터 검증
-      console.log('👤 persona_card 데이터:', data?.persona_card);
-      if (data?.persona_card) {
-        console.log('  - 학교:', data.persona_card.school);
-        console.log('  - 전공:', data.persona_card.major);
-        console.log('  - 직무 카테고리:', data.persona_card.job_category);
-        console.log('  - 직무명:', data.persona_card.job_title);
-        console.log('  - 스킬 개수:', data.persona_card.skills?.length || 0);
-        console.log('  - 자격증 개수:', data.persona_card.certifications?.length || 0);
-      }
-      
-      // competency 데이터 검증
-      console.log('🧠 competency 데이터:', data?.competency);
-      if (data?.competency) {
-        console.log('  - details 키 개수:', Object.keys(data.competency.details || {}).length);
-        console.log('  - details 키 목록:', Object.keys(data.competency.details || {}));
-        console.log('  - final_evaluation:', data.competency.final_evaluation);
-        
-        // 각 역량별 상세 정보
-        Object.entries(data.competency.details || {}).forEach(([key, value]) => {
-          console.log(`  - ${key}:`, {
-            score: value.score,
-            score_explanation: value.score_explanation?.substring(0, 50) + '...',
-            key_insights_count: value.key_insights?.length || 0,
-            evaluated_at: value.evaluated_at
-          });
+      // company_logo 디버깅을 위한 로그만 유지
+      if (data?.recommendations && data.recommendations.length > 0) {
+        console.log('🔍 첫 번째 공고의 company_logo:', data.recommendations[0].company_logo);
+        console.log('🔍 배경 이미지 적용 확인:', {
+          hasCompanyLogo: !!data.recommendations[0].company_logo,
+          logoUrl: data.recommendations[0].company_logo
         });
       }
       
-      // recommendations 데이터 검증
-      console.log('💼 recommendations 데이터:', data?.recommendations);
-      if (data?.recommendations) {
-        console.log('  - 추천 공고 개수:', data.recommendations.length);
-        console.log('  - total_count:', data.total_count);
-        
-        // 첫 번째 추천 공고 상세 정보
-        if (data.recommendations.length > 0) {
-          const firstJob = data.recommendations[0];
-          console.log('  - 첫 번째 공고:', {
-            job_posting_id: firstJob.job_posting_id,
-            recommendation_score: firstJob.recommendation_score,
-            company_name: firstJob.company_name,
-            job_title: firstJob.job_title,
-            location: firstJob.location,
-            application_deadline: firstJob.application_deadline
-          });
-        }
-      }
-      
       setRecommendationData(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ 추천 공고 조회 실패:', err);
-      console.error('에러 상세:', {
-        message: err instanceof Error ? err.message : 'Unknown error',
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        data: err?.response?.data
-      });
       setError('추천 공고를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -293,6 +248,14 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
   useEffect(() => {
     fetchRecommendations();
   }, [fetchRecommendations]);
+
+  // 데이터가 로드되면 첫 번째 역량을 자동 선택
+  useEffect(() => {
+    if (recommendationData?.competency?.details && Object.keys(recommendationData.competency.details).length > 0) {
+      const firstCapability = Object.keys(recommendationData.competency.details)[0];
+      setSelectedCapability(firstCapability);
+    }
+  }, [recommendationData]);
 
   if (!currentPersona) {
     return (
@@ -362,10 +325,10 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
         </header>
 
         {/* Main Content */}
-        <main className="px-6 py-8 bg-white">
+        <main className="px-6 py-4 bg-white">
           <div className="max-w-7xl mx-auto">
             {/* 상단: 페르소나 카드 */}
-            <div className="mb-6">
+            <div className="mb-4">
               <PersonaCardHeader persona={currentPersona} />
             </div>
 
@@ -386,6 +349,8 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
                 <Card className="p-4 h-80 flex flex-col">
                   <AIAnalysisSummary 
                     competencyData={recommendationData.competency?.details || {}}
+                    selectedCapability={selectedCapability}
+                    onCapabilitySelect={setSelectedCapability}
                   />
                 </Card>
               </div>
@@ -414,35 +379,48 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {(recommendationData.recommendations || []).map((job) => (
+                {(recommendationData.recommendations || []).map((job) => {
+                  // 배경 이미지 디버깅
+                  console.log(`🎨 공고 ${job.job_posting_id} 배경 이미지 설정:`, {
+                    company_logo: job.company_logo,
+                    hasLogo: !!job.company_logo,
+                    backgroundStyle: job.company_logo ? `url(${job.company_logo})` : 'none'
+                  });
+                  
+                  return (
                   <div
                     key={job.job_posting_id}
                     className="group cursor-pointer rounded-xl border border-gray-200 overflow-hidden bg-white hover:shadow transition-shadow min-h-[260px]"
                     onClick={() => onJobSelect(job.job_posting_id)}
                   >
-                    {/* Top area with logo and match badge */}
-                    <div className="relative h-32 overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {/* Top area with background image and match badge */}
+                    <div 
+                      className="relative h-32 overflow-hidden bg-gray-100 flex items-center justify-center"
+                      style={{
+                        backgroundImage: job.company_logo ? `url(${job.company_logo})` : undefined,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat'
+                      }}
+                    >
+                      {/* 배경 이미지가 있을 때 오버레이 추가 */}
                       {job.company_logo && (
-                        <img
-                          src={job.company_logo}
-                          alt={`${job.company_name} 로고`}
-                          className="w-16 h-16 object-cover rounded-lg"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
+                        <div className="absolute inset-0 bg-black/20"></div>
                       )}
+                      
+                      {/* 회사 로고는 제거하고 배경 이미지만 사용 */}
+                      
                       <button
-                        className={`absolute top-2 right-2 text-gray-400 hover:text-gray-600`}
+                        className={`absolute top-2 right-2 text-white hover:text-gray-200 z-20`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onToggleScrap(job.job_posting_id);
                         }}
                         aria-label="스크랩"
                       >
-                        <Bookmark className={`h-4 w-4 ${scrapedJobs.has(job.job_posting_id) ? 'fill-current text-blue-600' : ''}`} />
+                        <Bookmark className={`h-4 w-4 ${scrapedJobs.has(job.job_posting_id) ? 'fill-current text-blue-400' : ''} drop-shadow-sm`} />
                       </button>
-                      <span className="absolute bottom-2 left-2 text-[11px] px-2 py-0.5 rounded-md bg-white/80 text-blue-700 border border-blue-200">
+                      <span className="absolute bottom-2 left-2 text-[11px] px-2 py-0.5 rounded-md bg-white/90 text-blue-700 border border-blue-200 z-10">
                         {job.recommendation_score}% match
                       </span>
                     </div>
@@ -463,7 +441,8 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
