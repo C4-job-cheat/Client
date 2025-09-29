@@ -5,8 +5,16 @@ import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { ArrowLeft, ArrowRight, MessageCircle, Mic, Play, Volume2 } from 'lucide-react';
 import { CircularTimer } from './CircularTimer';
-import { apiClient } from '../api/apiClient';
-import type { Page, InterviewSession, InterviewAnswerSubmitVoiceRequest, NextQuestionResponse, InterviewCompletedResponse } from '../types';
+import { submitInterviewVoiceAnswer } from '../api/services/interviewService';
+import type { Page, InterviewSession, NextQuestionResponse, InterviewCompletedResponse } from '../types';
+
+const TOTAL_QUESTIONS = 10;
+
+const isInterviewCompletedResponse = (
+  response: NextQuestionResponse | InterviewCompletedResponse,
+): response is InterviewCompletedResponse => {
+  return 'questions' in response;
+};
 
 interface VoiceInterviewQuestionsProps {
   session: InterviewSession | null;
@@ -28,14 +36,58 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [sessionState, setSessionState] = useState<InterviewSession | null>(session);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
 
-  const hasSession = session !== null;
-  const currentQuestion = hasSession ? session.questions[currentQuestionIndex] : null;
-  const isLastQuestion = hasSession ? currentQuestionIndex === session.questions.length - 1 : false;
-  const progress = hasSession ? ((currentQuestionIndex + 1) / session.questions.length) * 100 : 0;
+  useEffect(() => {
+    if (!session) {
+      setSessionState(null);
+      setCurrentQuestionIndex(0);
+      setRecordingState('idle');
+      setTimeLeft(60);
+      setIsTimerActive(false);
+      setRecordings([]);
+      setRecordingUrls([]);
+      setIsQuestionPlaying(false);
+      setIsPlayingRecording(false);
+      return;
+    }
+
+    setSessionState({
+      ...session,
+      questions: session.questions.map((q, index) => ({
+        ...q,
+        questionNumber: q.questionNumber ?? index + 1,
+      })),
+    });
+    setCurrentQuestionIndex(0);
+    setRecordingState('idle');
+    setTimeLeft(60);
+    setIsTimerActive(false);
+    setRecordings([]);
+    setRecordingUrls([]);
+    setError(null);
+  }, [session]);
+
+  const hasSession = sessionState !== null;
+  const currentQuestion = hasSession ? sessionState.questions[currentQuestionIndex] : null;
+  const currentQuestionNumber = currentQuestion?.questionNumber ?? currentQuestionIndex + 1;
+  const progress = hasSession ? (currentQuestionNumber / TOTAL_QUESTIONS) * 100 : 0;
+
+  // 음성 면접 진행 상태 로그 (질문 변경 시에만 실행)
+  useEffect(() => {
+    if (!sessionState) return;
+
+    console.log('🔍 음성 면접 진행 상태:', {
+      questionNumber: currentQuestionNumber,
+      currentQuestionIndex,
+      progress: Math.round(progress),
+      sessionQuestionsLength: sessionState.questions.length
+    });
+  }, [currentQuestionNumber, sessionState, progress, currentQuestionIndex]);
 
   // 녹음 URL 생성
   useEffect(() => {
@@ -53,7 +105,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
   }, [recordings]);
 
   const proceedToNext = useCallback(async () => {
-    if (!session || !currentQuestion) return;
+    if (!sessionState || !currentQuestion) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -65,73 +117,82 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
         return;
       }
 
-      // 음성 파일을 FormData로 변환
-      const formData = new FormData();
-      formData.append('persona_id', session.personaId);
-      formData.append('interview_session_id', session.id);
-      formData.append('question_id', currentQuestion.id);
-      formData.append('question_number', (currentQuestionIndex + 1).toString());
-      formData.append('audio_file', currentRecording, `recording_${currentQuestionIndex + 1}.webm`);
-      formData.append('time_taken', (60 - timeLeft).toString());
+      const elapsedSeconds = Math.max(60 - timeLeft, 0);
+
+      const requestPayload = {
+        persona_id: sessionState.personaId,
+        interview_session_id: sessionState.id,
+        question_id: currentQuestion.id,
+        question_number: currentQuestion.questionNumber,
+        audio_file: currentRecording,
+        time_taken: elapsedSeconds
+      };
 
       console.log('🔍 음성 답변 제출 요청:', {
-        persona_id: session.personaId,
-        interview_session_id: session.id,
-        question_id: currentQuestion.id,
-        question_number: currentQuestionIndex + 1,
-        time_taken: 60 - timeLeft
+        ...requestPayload,
+        audio_file: `File(${currentRecording.size} bytes)`
       });
-      
-      const { data } = await apiClient.post<NextQuestionResponse | InterviewCompletedResponse>('/api/interviews/answers/submit-and-next/', formData);
-      
-      console.log('🔍 음성 답변 제출 응답:', data);
 
-      // 면접 완료인지 확인
-      if ('status' in data && data.status === 'completed') {
-        // 면접 완료 - 서버 데이터로 세션 업데이트
-      const completedSession: InterviewSession = {
-        ...session,
-          questions: data.questions.map(q => ({
+      const response = await submitInterviewVoiceAnswer(requestPayload);
+
+      if (isInterviewCompletedResponse(response)) {
+        const completedSession: InterviewSession = {
+          ...sessionState,
+          questions: response.questions.map((q) => ({
             id: q.question_id,
+            questionNumber: q.question_number,
             question: q.question_text,
             answer: q.answer_text,
             type: q.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
             timeSpent: q.time_taken
           })),
-          score: data.score,
+          score: response.score,
           feedback: {
-            strengths: data.final_good_points,
-            improvements: data.final_improvement_points,
+            strengths: response.final_good_points,
+            improvements: response.final_improvement_points,
             suggestions: []
           },
-          completedAt: data.completed_at
-      };
-      onComplete(completedSession);
-    } else {
-        // 다음 질문 - 서버에서 받은 질문 추가
-        const nextQuestion = data as NextQuestionResponse;
-        const updatedQuestions = [...session.questions];
-        updatedQuestions.push({
-          id: nextQuestion.question_id,
-          question: nextQuestion.question_text,
-          answer: '',
-          type: nextQuestion.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
-          timeSpent: 0
-        });
-
-        const updatedSession: InterviewSession = {
-          ...session,
-          questions: updatedQuestions
+          completedAt: response.completed_at
         };
 
-      setCurrentQuestionIndex((prev) => prev + 1);
-      setTimeLeft(60);
-      setIsTimerActive(false);
-      setRecordingState('idle');
+        onComplete(completedSession);
+      } else {
+        setSessionState((prev) => {
+          if (!prev) return prev;
 
-      setTimeout(() => {
-          playQuestionAndStartRecording(nextQuestion.question_text);
-      }, 1000);
+          const questionsWithAnswer = prev.questions.map((question, index) =>
+            index === currentQuestionIndex
+              ? {
+                  ...question,
+                  answer: question.answer || '음성 답변 제출 완료',
+                  timeSpent: elapsedSeconds
+                }
+              : question
+          );
+
+        questionsWithAnswer.push({
+            id: response.question_id,
+            questionNumber: response.question_number,
+            question: response.question_text,
+            answer: '',
+            type: response.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
+            timeSpent: 0
+          });
+
+          return {
+            ...prev,
+            questions: questionsWithAnswer
+          };
+        });
+
+        setCurrentQuestionIndex((prev) => prev + 1);
+        setTimeLeft(60);
+        setIsTimerActive(false);
+        setRecordingState('idle');
+
+        setTimeout(() => {
+          playQuestionAndStartRecording(response.question_text);
+        }, 1000);
       }
     } catch (err) {
       console.error('음성 답변 제출 실패:', err);
@@ -139,7 +200,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentQuestion, currentQuestionIndex, onComplete, playQuestionAndStartRecording, recordings, session, timeLeft]);
+  }, [currentQuestion, currentQuestionIndex, playQuestionAndStartRecording, recordings, sessionState, timeLeft, onComplete]);
 
   const handleNextQuestion = useCallback(() => {
     if (!currentQuestion) return;
@@ -342,7 +403,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
 
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-600">
-              질문 {currentQuestionIndex + 1} / {session.questions.length}
+              질문 {currentQuestionNumber} / {TOTAL_QUESTIONS}
             </div>
             <Progress value={progress} className="w-32" />
           </div>
@@ -478,7 +539,7 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
                     disabled={isQuestionPlaying || isSubmitting}
                       className="bg-black hover:bg-gray-800"
                     >
-                    {isSubmitting ? '답변 제출 중...' : (isLastQuestion ? '면접 완료' : '답변 완료')}
+                    {isSubmitting ? '답변 제출 중...' : (currentQuestionNumber === TOTAL_QUESTIONS ? '면접 완료' : '답변 완료')}
                       <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                   

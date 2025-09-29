@@ -13,8 +13,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true', // ngrok 경고 ?�이지 ?�회
   },
-  withCredentials: false, // CORS 문제 ?�결???�해 ?�시�?false
-  timeout: 10000, // 10�??�?�아???�정
+  withCredentials: false,
 })
 
 async function attachFirebaseToken(

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import type { Page, InterviewSession } from '../types';
+import { fetchInterviewQuestionDetail } from '../api/services/interviewService';
+import type { Page, InterviewSession, InterviewQuestionDetailResponse } from '../types';
 
 interface InterviewResultsProps {
   session: InterviewSession | null;
@@ -26,8 +27,11 @@ interface InterviewResultsProps {
 
 export function InterviewResults({ session, onNavigate }: InterviewResultsProps) {
   const [selectedQuestion, setSelectedQuestion] = useState<InterviewSession['questions'][number] | null>(null);
+  const [questionDetail, setQuestionDetail] = useState<InterviewQuestionDetailResponse | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const { avgAnswerLength, avgTimeSpent, totalTimeSpent } = useMemo(() => {
     if (!session || session.questions.length === 0) {
@@ -44,14 +48,37 @@ export function InterviewResults({ session, onNavigate }: InterviewResultsProps)
     };
   }, [session]);
 
+  // 질문 상세 조회 API 호출 함수
+  const fetchQuestionDetail = useCallback(async (question: InterviewSession['questions'][number]) => {
+    if (!session) return;
+    
+    setIsLoadingDetail(true);
+    setDetailError(null);
+    
+    try {
+      const data = await fetchInterviewQuestionDetail(session.id, question.id, session.personaId);
+      
+      console.log('🔍 질문 상세 데이터:', data);
+      setQuestionDetail(data);
+    } catch (err) {
+      console.error('질문 상세 조회 실패:', err);
+      setDetailError('질문 상세 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }, [session]);
+
   const handleQuestionClick = (question: InterviewSession['questions'][number]) => {
     setSelectedQuestion(question);
     setShowDetailView(true);
+    fetchQuestionDetail(question);
   };
 
   const handleBackToList = () => {
     setShowDetailView(false);
     setSelectedQuestion(null);
+    setQuestionDetail(null);
+    setDetailError(null);
   };
 
   const toggleQuestionExpansion = (questionId: string) => {
@@ -146,62 +173,118 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
         {/* Detail Content */}
         <main className="px-6 py-8">
           <div className="max-w-4xl mx-auto space-y-6">
-            {/* Question Info */}
-            <Card className="p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <Badge className={QUESTION_TYPE_META[selectedQuestion.type]?.color || 'bg-gray-100 text-gray-700'}>
-                  {QUESTION_TYPE_META[selectedQuestion.type]?.label || '일반'}
-                </Badge>
-                <span className="text-sm text-gray-500">
-                  소요 시간: {formatTime(selectedQuestion.timeSpent)}
-                </span>
+            {isLoadingDetail ? (
+              <div className="text-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">질문 상세 정보를 불러오는 중...</p>
               </div>
-              <h2 className="text-xl font-semibold mb-4">{selectedQuestion.question}</h2>
-            </Card>
-
-            {/* Answer */}
-            <Card className="p-6">
-              <h3 className="font-semibold mb-4">내 답변</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                  {selectedQuestion.answer || '답변이 입력되지 않았습니다.'}
-                </p>
+            ) : detailError ? (
+              <div className="text-center py-16">
+                <p className="text-red-600 mb-4">{detailError}</p>
+                <Button onClick={() => selectedQuestion && fetchQuestionDetail(selectedQuestion)}>
+                  다시 시도
+                </Button>
               </div>
-              <div className="mt-4 text-sm text-gray-500">
-                답변 길이: {selectedQuestion.answer?.length || 0}자
-              </div>
-            </Card>
-
-            {/* Analysis */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4 text-green-700">잘한 점</h3>
-                <div className="space-y-2">
-                  <div className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">질문의 핵심을 이해하고 답변했습니다.</p>
+            ) : questionDetail ? (
+              <>
+                {/* Question Info */}
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Badge className={QUESTION_TYPE_META[selectedQuestion.type]?.color || 'bg-gray-100 text-gray-700'}>
+                        {questionDetail.question_type}
+                      </Badge>
+                      <span className="text-sm text-gray-500">
+                        소요 시간: {formatTime(questionDetail.time_taken)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-blue-600">{questionDetail.question_score}/10</div>
+                      <div className="text-sm text-gray-500">점수</div>
+                    </div>
                   </div>
-                  <div className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">구체적인 경험을 들어 설명했습니다.</p>
+                  <h2 className="text-xl font-semibold mb-4">{questionDetail.question_text}</h2>
+                  
+                  {/* Question Intent */}
+                  {questionDetail.question_intent && questionDetail.question_intent.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">질문 의도</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {questionDetail.question_intent.map((intent, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {intent}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+
+                {/* Answer */}
+                <Card className="p-6">
+                  <h3 className="font-semibold mb-4">내 답변</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                      {questionDetail.answer_text || '답변이 입력되지 않았습니다.'}
+                    </p>
                   </div>
+                  <div className="mt-4 text-sm text-gray-500">
+                    답변 길이: {questionDetail.answer_length}자
+                  </div>
+                </Card>
+
+                {/* Analysis */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card className="p-6">
+                    <h3 className="font-semibold mb-4 text-green-700">잘한 점</h3>
+                    <div className="space-y-2">
+                      {questionDetail.good_points && questionDetail.good_points.length > 0 ? (
+                        questionDetail.good_points.map((point, index) => (
+                          <div key={index} className="flex items-start space-x-2">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <p className="text-sm text-gray-700">{point}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">분석 중...</p>
+                      )}
+                    </div>
+                  </Card>
+
+                  <Card className="p-6">
+                    <h3 className="font-semibold mb-4 text-orange-700">개선할 점</h3>
+                    <div className="space-y-2">
+                      {questionDetail.improvement_points && questionDetail.improvement_points.length > 0 ? (
+                        questionDetail.improvement_points.map((point, index) => (
+                          <div key={index} className="flex items-start space-x-2">
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <p className="text-sm text-gray-700">{point}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">분석 중...</p>
+                      )}
+                    </div>
+                  </Card>
                 </div>
-              </Card>
 
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4 text-orange-700">개선할 점</h3>
-                <div className="space-y-2">
-                  <div className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">더 구체적인 사례를 들어 설명해보세요.</p>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">결론 부분을 더 명확하게 정리해보세요.</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
+                {/* Sample Answer */}
+                {questionDetail.sample_answer && (
+                  <Card className="p-6">
+                    <h3 className="font-semibold mb-4 text-blue-700">모범 답안</h3>
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                        {questionDetail.sample_answer}
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-16">
+                <p className="text-gray-600">질문 상세 정보를 불러오는 중...</p>
+              </div>
+            )}
 
             {/* Suggestions */}
             <Card className="p-6">

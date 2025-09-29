@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -7,21 +7,47 @@ import type { CheckedState } from '@radix-ui/react-checkbox';
 import { Label } from './ui/label';
 import { ArrowLeft, MessageCircle, FileText, User, Play, Mic } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
-import type { Page, PersonaResponse, CoverLetter, InterviewSession, InterviewQuestionGenerateRequest, InterviewQuestionGenerateResponse } from '../types';
+import { fetchInterviewPreparation } from '../api/services/interviewService';
+import type { Page, PersonaResponse, InterviewSession, InterviewQuestionGenerateRequest, InterviewQuestionGenerateResponse, InterviewPreparationResponse } from '../types';
 
 interface InterviewPracticeProps {
   currentPersona: PersonaResponse | null;
-  coverLetters: CoverLetter[];
   onNavigate: (page: Page) => void;
   onStart: (session: InterviewSession) => void;
 }
 
-export function InterviewPractice({ currentPersona, coverLetters, onNavigate, onStart }: InterviewPracticeProps) {
+export function InterviewPractice({ currentPersona, onNavigate, onStart }: InterviewPracticeProps) {
+  const [preparationData, setPreparationData] = useState<InterviewPreparationResponse | null>(null);
   const [useCoverLetter, setUseCoverLetter] = useState(false);
   const [selectedCoverLetterId, setSelectedCoverLetterId] = useState<string>('');
   const [useVoiceInterview, setUseVoiceInterview] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // API 호출 함수
+  const fetchPreparationData = useCallback(async () => {
+    if (!currentPersona) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await fetchInterviewPreparation(currentPersona.persona_id);
+      
+      console.log('🔍 면접 준비 데이터:', data);
+      setPreparationData(data);
+    } catch (err) {
+      console.error('면접 준비 데이터 조회 실패:', err);
+      setError('면접 준비 데이터를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPersona]);
+
+  useEffect(() => {
+    fetchPreparationData();
+  }, [fetchPreparationData]);
 
   if (!currentPersona) {
     return (
@@ -40,7 +66,31 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
     );
   }
 
-  const availableCoverLetters = coverLetters.filter(cl => cl.personaId === currentPersona.persona_id);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">면접 준비 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchPreparationData}>
+            다시 시도
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const availableCoverLetters = preparationData?.cover_letters || [];
 
   const handleStart = async () => {
     if (!currentPersona) return;
@@ -48,14 +98,23 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
     setIsStarting(true);
     setError(null);
 
-    try {
-      const requestData: InterviewQuestionGenerateRequest = {
-        persona_id: currentPersona.persona_id,
-        cover_letter_id: useCoverLetter ? selectedCoverLetterId : undefined,
-        use_voice: useVoiceInterview
-      };
+    const requestData: InterviewQuestionGenerateRequest = {
+      persona_id: currentPersona.persona_id,
+      ...(useCoverLetter && selectedCoverLetterId && { cover_letter_id: selectedCoverLetterId }),
+      use_voice: useVoiceInterview
+    };
 
-      console.log('🔍 면접 질문 생성 요청:', requestData);
+    console.log('🔍 면접 질문 생성 요청:', requestData);
+    console.log('🔍 요청 상세 정보:', {
+      persona_id: currentPersona.persona_id,
+      cover_letter_id: useCoverLetter && selectedCoverLetterId ? selectedCoverLetterId : undefined,
+      use_voice: useVoiceInterview,
+      useCoverLetter,
+      selectedCoverLetterId,
+      useVoiceInterview
+    });
+
+    try {
       
       const { data } = await apiClient.post<InterviewQuestionGenerateResponse>('/api/interviews/questions/generate/', requestData);
       
@@ -69,6 +128,7 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
         coverLetterId: useCoverLetter ? selectedCoverLetterId : undefined,
         questions: [{
           id: data.question.question_id,
+          questionNumber: data.question.question_number,
           question: data.question.question_text,
           type: data.question.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
           timeSpent: 0,
@@ -89,7 +149,30 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
       }
     } catch (err) {
       console.error('면접 질문 생성 실패:', err);
-      setError('면접 질문 생성에 실패했습니다. 다시 시도해주세요.');
+      
+      // 400 에러 상세 정보 로그
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        if (axiosError.response?.status === 400) {
+          console.error('🔍 400 에러 상세 정보:', {
+            status: axiosError.response.status,
+            statusText: axiosError.response.statusText,
+            data: axiosError.response.data,
+            requestData: requestData
+          });
+          
+          // 서버에서 제공하는 에러 메시지가 있으면 사용
+          if (axiosError.response.data?.error) {
+            setError(`입력 데이터 오류: ${axiosError.response.data.error}`);
+          } else {
+            setError('입력 데이터가 유효하지 않습니다. 다시 확인해주세요.');
+          }
+        } else {
+          setError('면접 질문 생성에 실패했습니다. 다시 시도해주세요.');
+        }
+      } else {
+        setError('면접 질문 생성에 실패했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsStarting(false);
     }
@@ -124,12 +207,18 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
                 <User className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">{currentPersona.job_category} 개발자</h2>
-                <p className="text-gray-600">{currentPersona.school_name} · {currentPersona.major}</p>
+                <h2 className="text-xl font-semibold">
+                  {preparationData?.persona_card.job_title || currentPersona.job_role}
+                </h2>
+                <p className="text-gray-600">
+                  {preparationData?.persona_card.school || currentPersona.school_name} · {preparationData?.persona_card.major || currentPersona.major}
+                </p>
                 <div className="flex items-center space-x-2 mt-2">
-                  <Badge variant="secondary">{currentPersona.job_role}</Badge>
-                  {currentPersona.skills && currentPersona.skills.length > 0 && (
-                    <Badge variant="outline">{currentPersona.skills[0]}</Badge>
+                  <Badge variant="secondary">
+                    {preparationData?.persona_card.job_category || currentPersona.job_category}
+                  </Badge>
+                  {preparationData?.persona_card.skills && preparationData.persona_card.skills.length > 0 && (
+                    <Badge variant="outline">{preparationData.persona_card.skills[0]}</Badge>
                   )}
                 </div>
               </div>
@@ -175,9 +264,9 @@ export function InterviewPractice({ currentPersona, coverLetters, onNavigate, on
                             >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <h4 className="font-medium">{coverLetter.targetCompany}</h4>
+                                  <h4 className="font-medium">{coverLetter.company_name}</h4>
                                   <p className="text-sm text-gray-600">
-                                    {new Date(coverLetter.createdAt).toLocaleDateString()}
+                                    {new Date(coverLetter.created_at).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <div className="flex items-center space-x-2">

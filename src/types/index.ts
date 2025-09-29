@@ -355,7 +355,7 @@ export interface InterviewAnswerSubmitRequest {
   time_taken: number;
 }
 
-// 면접 답변 제출 API 요청 타입 (음성)
+// 면접 답변 제출 API 요청 타입 (음성) - FormData로 전송
 export interface InterviewAnswerSubmitVoiceRequest {
   persona_id: string;
   interview_session_id: string;
@@ -445,6 +445,52 @@ export interface InterviewPreparationResponse {
   cover_letters: InterviewPreparationCoverLetter[];
 }
 
+// 면접 연습 기록 응답 타입
+export interface InterviewHistoryResponse {
+  total_sessions: number;
+  average_score: number;
+  highest_score: number;
+  total_practice_time: number;
+  sessions: InterviewHistorySession[];
+  persona_card: {
+    school: string;
+    major: string;
+    job_category: string;
+    job_title: string;
+    skills: string[];
+    certifications: string[];
+  };
+}
+
+export interface InterviewHistorySession {
+  interview_session_id: string;
+  score: number;
+  grade: string;
+  total_time: number;
+  created_at: string;
+  completed_at: string;
+}
+
+// 면접 질문 상세 조회 응답 타입
+export interface InterviewQuestionDetailResponse {
+  id: string;
+  question_id: string;
+  question_number: number;
+  question_type: string;
+  question_text: string;
+  answer_text: string;
+  answer_length: number;
+  time_taken: number;
+  is_answered: boolean;
+  question_score: number;
+  good_points: string[];
+  improvement_points: string[];
+  sample_answer: string;
+  question_intent: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 // 면접 세션 타입
 export interface InterviewSession {
   id: string;
@@ -454,6 +500,7 @@ export interface InterviewSession {
   useVoiceInterview?: boolean;
   questions: Array<{
     id: string;
+    questionNumber: number;
     question: string;
     answer: string;
     type: "cover-letter" | "job-knowledge" | "ai-recommended";

@@ -63,7 +63,6 @@ export default function App() {
   // 면접 관리  
   const [interviewSessions, setInterviewSessions] = useState<InterviewSession[]>([]);
   const [currentInterviewSession, setCurrentInterviewSession] = useState<InterviewSession | null>(null);
-  
   const navigateTo = (page: Page, source?: NavigationSource) => {
     if (page === 'persona-waiting' && source) {
       setPersonaWaitingSource(source);

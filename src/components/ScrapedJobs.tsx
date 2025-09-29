@@ -159,7 +159,7 @@ export function ScrapedJobs({
           </div>
         )}
 
-        {scrapedJobList.length === 0 ? (
+        {scrapedJobsData.scraped_jobs.length === 0 ? (
           <div className="text-center py-16">
             <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-gray-600 mb-2">스크랩한 공고가 없습니다</h3>
@@ -232,61 +232,61 @@ export function ScrapedJobs({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scrapedJobList.map((job) => (
+                {scrapedJobsData.scraped_jobs.map((job) => (
                   <TableRow
-                    key={job.id}
+                    key={job.job_posting_id}
                     className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
-                    onClick={() => onJobSelect(job.id)}
+                    onClick={() => onJobSelect(job.job_posting_id)}
                   >
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center space-x-3">
                         <ImageWithFallback
-                          src={job.logoUrl}
-                          alt={`${job.company} 로고`}
+                          src={job.company_logo}
+                          alt={`${job.company_name} 로고`}
                           className="w-10 h-10 rounded-lg object-cover shadow-sm"
                         />
-                        <span className="font-medium text-gray-900">{job.company}</span>
+                        <span className="font-medium text-gray-900">{job.company_name}</span>
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-6">
                       <div className="space-y-1">
-                        <p className="font-semibold text-gray-900 leading-tight">{job.title}</p>
+                        <p className="font-semibold text-gray-900 leading-tight">{job.job_title}</p>
                         <div className="flex items-center text-sm text-gray-500">
                           <MapPin className="w-3 h-3 mr-1" />
-                          {job.details.location}
+                          {job.location}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-6">
                       <Badge variant="outline" className="text-sm">
-                        {job.field}
+                        {job.job_category}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4 px-6">
                       <div className="flex flex-wrap gap-1 max-w-xs">
-                        {job.details.techStack?.slice(0, 3).map((tech) => (
-                          <Badge key={tech} variant="outline" className="text-xs">
-                            {tech}
+                        {job.requirements?.slice(0, 3).map((req, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {req}
                           </Badge>
                         ))}
-                        {job.details.techStack && job.details.techStack.length > 3 && (
+                        {job.requirements && job.requirements.length > 3 && (
                           <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
-                            +{job.details.techStack.length - 3}
+                            +{job.requirements.length - 3}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-center py-4 px-6">
                       <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 rounded-full font-semibold">
-                        {job.matchScore}
+                        -
                       </div>
                     </TableCell>
                     <TableCell className="text-center py-4 px-6">
                       <Badge
-                        variant={formatDeadline(job.details.deadline).includes('마감') ? 'destructive' : 'outline'}
+                        variant={formatDeadline(job.deadline).includes('마감') ? 'destructive' : 'outline'}
                         className="font-medium"
                       >
-                        {formatDeadline(job.details.deadline)}
+                        {formatDeadline(job.deadline)}
                       </Badge>
                     </TableCell>
                   </TableRow>

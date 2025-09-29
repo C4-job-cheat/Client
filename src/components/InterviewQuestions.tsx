@@ -6,8 +6,16 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ArrowLeft, ArrowRight, Clock, MessageCircle } from 'lucide-react';
 import { CircularTimer } from './CircularTimer';
-import { apiClient } from '../api/apiClient';
+import { submitInterviewAnswer } from '../api/services/interviewService';
 import type { Page, InterviewSession, InterviewAnswerSubmitRequest, NextQuestionResponse, InterviewCompletedResponse } from '../types';
+
+const TOTAL_QUESTIONS = 10;
+
+const isInterviewCompletedResponse = (
+  response: NextQuestionResponse | InterviewCompletedResponse,
+): response is InterviewCompletedResponse => {
+  return 'questions' in response;
+};
 
 interface InterviewQuestionsProps {
   session: InterviewSession | null;
@@ -27,80 +35,132 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [sessionState, setSessionState] = useState<InterviewSession | null>(session);
+
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      setSessionState(null);
+      setAnswers([]);
+      setCurrentQuestionIndex(0);
+      setCurrentAnswer('');
+      setTimeLeft(60);
+      setTotalElapsedTime(0);
+      setIsTimerActive(true);
+      return;
+    }
+
+    setSessionState({
+      ...session,
+      questions: session.questions.map((q, index) => ({
+        ...q,
+        questionNumber: q.questionNumber ?? index + 1,
+      })),
+    });
     setAnswers(new Array(session.questions.length).fill(''));
+    setCurrentQuestionIndex(0);
+    setCurrentAnswer('');
+    setTimeLeft(60);
+    setTotalElapsedTime(0);
+    setIsTimerActive(true);
   }, [session]);
 
-  const hasSession = session !== null;
-  const currentQuestion = hasSession ? session.questions[currentQuestionIndex] : null;
-  const isLastQuestion = hasSession ? currentQuestionIndex === session.questions.length - 1 : false;
-  const progress = hasSession ? ((currentQuestionIndex + 1) / session.questions.length) * 100 : 0;
+  const hasSession = sessionState !== null;
+  const currentQuestion = hasSession ? sessionState.questions[currentQuestionIndex] : null;
+  const currentQuestionNumber = currentQuestion?.questionNumber ?? currentQuestionIndex + 1;
+  const progress = hasSession ? (currentQuestionNumber / TOTAL_QUESTIONS) * 100 : 0;
+
+  // 면접 진행 상태 로그 (질문 변경 시에만 실행)
+  useEffect(() => {
+    if (!sessionState) return;
+
+    console.log('🔍 면접 진행 상태:', {
+      questionNumber: currentQuestionNumber,
+      currentQuestionIndex,
+      progress: Math.round(progress),
+      sessionQuestionsLength: sessionState.questions.length
+    });
+  }, [currentQuestionNumber, sessionState, progress, currentQuestionIndex]);
 
   const handleNextQuestion = useCallback(async () => {
-    if (!session || !currentQuestion) return;
+    if (!sessionState || !currentQuestion) return;
 
     setIsSubmitting(true);
     setError(null);
 
+    const elapsedSeconds = Math.max(60 - timeLeft, 0);
+
     try {
       const requestData: InterviewAnswerSubmitRequest = {
-        persona_id: session.personaId,
-        interview_session_id: session.id,
+        persona_id: sessionState.personaId,
+        interview_session_id: sessionState.id,
         question_id: currentQuestion.id,
-        question_number: currentQuestionIndex + 1,
+        question_number: currentQuestion.questionNumber,
         answer_text: currentAnswer,
-        time_taken: 60 - timeLeft
+        time_taken: elapsedSeconds
       };
 
       console.log('🔍 답변 제출 요청:', requestData);
-      
-      const { data } = await apiClient.post<NextQuestionResponse | InterviewCompletedResponse>('/api/interviews/answers/submit-and-next/', requestData);
-      
-      console.log('🔍 답변 제출 응답:', data);
 
-      // 현재 답변 저장
       const updatedAnswers = [...answers];
       updatedAnswers[currentQuestionIndex] = currentAnswer;
-      setAnswers(updatedAnswers);
 
-      // 면접 완료인지 확인
-      if ('status' in data && data.status === 'completed') {
-        // 면접 완료 - 서버 데이터로 세션 업데이트
+      const response = await submitInterviewAnswer(requestData);
+
+      if (isInterviewCompletedResponse(response)) {
+        setAnswers(updatedAnswers);
+
         const completedSession: InterviewSession = {
-          ...session,
-          questions: data.questions.map(q => ({
+          ...sessionState,
+          questions: response.questions.map((q) => ({
             id: q.question_id,
+            questionNumber: q.question_number,
             question: q.question_text,
             answer: q.answer_text,
             type: q.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
             timeSpent: q.time_taken
           })),
-          score: data.score,
+          score: response.score,
           feedback: {
-            strengths: data.final_good_points,
-            improvements: data.final_improvement_points,
+            strengths: response.final_good_points,
+            improvements: response.final_improvement_points,
             suggestions: []
           },
-          completedAt: data.completed_at
+          completedAt: response.completed_at
         };
+
         onComplete(completedSession);
       } else {
-        // 다음 질문 - 서버에서 받은 질문 추가
-        const nextQuestion = data as NextQuestionResponse;
-        const updatedQuestions = [...session.questions];
-        updatedQuestions.push({
-          id: nextQuestion.question_id,
-          question: nextQuestion.question_text,
-          answer: '',
-          type: nextQuestion.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
-          timeSpent: 0
-        });
+        const answersForNext = [...updatedAnswers];
+        answersForNext.push('');
+        setAnswers(answersForNext);
 
-        const updatedSession: InterviewSession = {
-          ...session,
-          questions: updatedQuestions
-        };
+        setSessionState((prev) => {
+          if (!prev) return prev;
+
+          const questionsWithAnswer = prev.questions.map((question, index) =>
+            index === currentQuestionIndex
+              ? {
+                  ...question,
+                  answer: currentAnswer,
+                  timeSpent: elapsedSeconds
+                }
+              : question
+          );
+
+          questionsWithAnswer.push({
+            id: response.question_id,
+            questionNumber: response.question_number,
+            question: response.question_text,
+            answer: '',
+            type: response.question_type as 'job-knowledge' | 'ai-recommended' | 'cover-letter',
+            timeSpent: 0
+          });
+
+          return {
+            ...prev,
+            questions: questionsWithAnswer
+          };
+        });
 
         setCurrentQuestionIndex((prev) => prev + 1);
         setCurrentAnswer('');
@@ -113,7 +173,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
     } finally {
       setIsSubmitting(false);
     }
-  }, [answers, currentAnswer, currentQuestion, currentQuestionIndex, onComplete, session, timeLeft]);
+  }, [answers, currentAnswer, currentQuestion, currentQuestionIndex, onComplete, sessionState, timeLeft]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -134,7 +194,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
     };
   }, [handleNextQuestion, isTimerActive, timeLeft]);
 
-  if (!session) {
+  if (!sessionState) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -194,7 +254,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
             
             <div className="flex items-center space-x-6">
               <span className="text-sm text-gray-500">
-                {currentQuestionIndex + 1} / {session.questions.length}
+                {currentQuestionNumber} / {TOTAL_QUESTIONS}
               </span>
               
               {/* Total elapsed time */}
@@ -264,7 +324,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
                       className="bg-blue-600 hover:bg-blue-700"
                       disabled={currentAnswer.trim().length < 10 || isSubmitting}
                     >
-                      {isSubmitting ? '답변 제출 중...' : (isLastQuestion ? '면접 완료' : '다음 질문')}
+                      {isSubmitting ? '답변 제출 중...' : (currentQuestionNumber === TOTAL_QUESTIONS ? '면접 완료' : '다음 질문')}
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                     
