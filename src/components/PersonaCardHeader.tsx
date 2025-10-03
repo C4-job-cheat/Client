@@ -34,17 +34,27 @@ export function PersonaCardHeader({ persona, className = '' }: PersonaCardHeader
 
   return (
     <div className={`bg-white border border-gray-200 rounded-lg shadow-sm p-3 ${className}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex-1">
-          <h3 className="text-sm font-semibold text-gray-900">내 페르소나</h3>
-          <p className="text-xs text-gray-600 mt-0.5">
+      {/* 상단: 프로필 정보 일렬 배치 */}
+      <div className="flex items-center space-x-4 mb-4">
+        {/* 내 페르소나 */}
+        <div className="flex-shrink-0">
+          <h3 className="text-lg font-semibold text-gray-900">내 페르소나</h3>
+        </div>
+        
+        {/* 직군 / 직무 */}
+        <div className="flex-shrink-0">
+          <p className="text-sm text-gray-700 font-medium">
             {persona.job_category}
-            {specificJob ? ` · ${specificJob}` : ''}
+            {specificJob ? ` / ${specificJob}` : ''}
           </p>
         </div>
-        <span className="text-xs text-gray-500">
-          {persona.school_name || '학교 미설정'} · {persona.major || '전공 미설정'}
-        </span>
+        
+        {/* 학교 / 학과 */}
+        <div className="flex-1">
+          <p className="text-sm text-gray-600">
+            {persona.school_name || '학교 미설정'} / {persona.major || '전공 미설정'}
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">

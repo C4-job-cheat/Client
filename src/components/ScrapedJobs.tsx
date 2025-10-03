@@ -43,6 +43,12 @@ export function ScrapedJobs({
       });
       
       console.log('🔍 스크랩된 공고 목록:', data);
+      console.log('📊 추천도 데이터 확인:', data.scraped_jobs.map(job => ({
+        job_id: job.job_posting_id,
+        job_title: job.job_title,
+        recommendation_score: job.recommendation_score,
+        deadline: job.deadline
+      })));
       setScrapedJobsData(data);
     } catch (err) {
       console.error('스크랩된 공고 목록 조회 실패:', err);
@@ -104,10 +110,45 @@ export function ScrapedJobs({
   }
 
   const formatDeadline = (deadline: string) => {
+    console.log('📅 마감일 포맷팅:', { deadline, type: typeof deadline });
+    
+    // 빈 문자열이나 유효하지 않은 날짜 처리
+    if (!deadline || deadline.trim() === '') {
+      console.log('📅 마감일이 비어있음');
+      return '마감일 미정';
+    }
+    
+    // ISO 8601 형식 파싱 (2025-10-31T23:59:59+09:00)
     const date = new Date(deadline);
+    
+    // 유효하지 않은 날짜 처리
+    if (isNaN(date.getTime())) {
+      console.log('📅 유효하지 않은 날짜:', deadline);
+      return '마감일 미정';
+    }
+    
+    // 현재 시간 (로컬 시간)
     const now = new Date();
+    
+    console.log('🕐 현재 시간 확인:', {
+      now: now.toString(),
+      nowISO: now.toISOString(),
+      deadline: deadline,
+      parsed: date.toString(),
+      parsedISO: date.toISOString()
+    });
+    
+    // 시간 차이 계산 (밀리초)
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log('📅 마감일 계산:', { 
+      original: deadline, 
+      parsed: date.toISOString(),
+      now: now.toISOString(),
+      diffTime, 
+      diffDays 
+    });
     
     if (diffDays < 0) return '마감';
     if (diffDays === 0) return '오늘 마감';
@@ -139,25 +180,7 @@ export function ScrapedJobs({
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* 페르소나 카드 헤더 */}
-        {currentPersona ? (
-          <>
-            <PersonaCardHeader persona={currentPersona} />
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-600">
-              <div>
-                <p className="text-gray-500">직무</p>
-                <p className="font-medium text-gray-900">{scrapedJobsData.persona_card.job_role ?? '직무 미지정'}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">학력</p>
-                <p className="font-medium text-gray-900">{scrapedJobsData.persona_card.school_name ?? '학력 정보 없음'}</p>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-center text-xs text-gray-500">
-            페르소나를 먼저 생성해주세요.
-          </div>
-        )}
+        {currentPersona && <PersonaCardHeader persona={currentPersona} />}
 
         {scrapedJobsData.scraped_jobs.length === 0 ? (
           <div className="text-center py-16">
@@ -168,123 +191,115 @@ export function ScrapedJobs({
               {currentPersona ? '추천 공고 보기' : '페르소나 생성하기'}
             </Button>
           </div>
-        ) : currentPersona ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-6">
-            {scrapedJobsData.scraped_jobs.map((job) => (
-              <div
-                key={job.job_posting_id}
-                className="p-4 border border-gray-200 rounded-xl hover:shadow transition-shadow"
-                onClick={() => onJobSelect(job.job_posting_id)}
-              >
-                <div className="flex items-center space-x-3 mb-3">
-                  <ImageWithFallback
-                    src={job.company_logo}
-                    alt={`${job.company_name} 로고`}
-                    className="w-10 h-10 rounded-lg object-cover"
-                  />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{job.job_title}</h3>
-                    <p className="text-xs text-gray-500">{job.company_name}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-xs text-gray-600">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-3 h-3" />
-                    <span>{job.location}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {job.requirements?.slice(0, 3).map((req, index) => (
-                      <Badge key={index} variant="outline" className="text-[10px]">
-                        {req}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Briefcase className="w-3 h-3" />
-                      <span>{job.job_category}</span>
-                    </div>
-                    <span className="text-red-600 font-medium">
-                      {formatDeadline(job.deadline)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 text-gray-500">
-            페르소나를 설정하면 스크랩한 공고를 볼 수 있어요.
-          </div>
-        )}
+        ) : null}
 
         <div className="mt-12">
           {currentPersona ? (
-            <Table>
+            <Table className="rounded-xl overflow-hidden shadow-lg border border-gray-200/50">
               <TableHeader>
-                <TableRow className="bg-gray-50 border-b">
-                  <TableHead className="py-4 px-6 font-semibold text-gray-900">기업명</TableHead>
-                  <TableHead className="py-4 px-6 font-semibold text-gray-900">공고명</TableHead>
-                  <TableHead className="py-4 px-6 font-semibold text-gray-900">직무</TableHead>
-                  <TableHead className="py-4 px-6 font-semibold text-gray-900">필요 자격증/기술 스택</TableHead>
+                <TableRow className="bg-gradient-to-r from-blue-50 to-gray-50 border-b-2 border-blue-200">
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900 text-left first:rounded-tl-xl">기업명</TableHead>
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900 text-left">공고명</TableHead>
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900 text-left">직무</TableHead>
+                  <TableHead className="py-4 px-6 font-semibold text-gray-900 text-left">필요 자격증/기술 스택</TableHead>
                   <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">추천도</TableHead>
-                  <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px]">마감일</TableHead>
+                  <TableHead className="text-center py-4 px-6 font-semibold text-gray-900 min-w-[100px] last:rounded-tr-xl">마감일</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scrapedJobsData.scraped_jobs.map((job) => (
+                {scrapedJobsData.scraped_jobs.map((job, index) => (
                   <TableRow
                     key={job.job_posting_id}
-                    className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    className={`cursor-pointer hover:bg-blue-50/50 transition-all duration-200 border-b-2 ${
+                      index % 2 === 0 
+                        ? 'bg-white border-gray-200/60' 
+                        : 'bg-gray-50/50 border-gray-300/60'
+                    } hover:shadow-md hover:scale-[1.01] rounded-lg`}
                     onClick={() => onJobSelect(job.job_posting_id)}
                   >
-                    <TableCell className="py-4 px-6">
+                    <TableCell className="py-5 px-6">
                       <div className="flex items-center space-x-3">
                         <ImageWithFallback
                           src={job.company_logo}
                           alt={`${job.company_name} 로고`}
-                          className="w-10 h-10 rounded-lg object-cover shadow-sm"
+                          className="w-12 h-12 rounded-xl object-cover shadow-md border border-gray-200/50"
                         />
-                        <span className="font-medium text-gray-900">{job.company_name}</span>
+                        <span className="font-semibold text-gray-900 text-base">{job.company_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-gray-900 leading-tight">{job.job_title}</p>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="w-3 h-3 mr-1" />
+                    <TableCell className="py-5 px-6">
+                      <div className="space-y-2">
+                        <p className="font-bold text-gray-900 leading-tight text-lg">{job.job_title}</p>
+                        <div className="flex items-center text-sm text-gray-600 bg-gray-100/50 px-3 py-1 rounded-full w-fit">
+                          <MapPin className="w-4 h-4 mr-2 text-blue-500" />
                           {job.location}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <Badge variant="outline" className="text-sm">
+                    <TableCell className="py-5 px-6">
+                      <Badge variant="outline" className="text-sm bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 rounded-full">
                         {job.job_category}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {job.requirements?.slice(0, 3).map((req, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {req}
-                          </Badge>
-                        ))}
+                    <TableCell className="py-5 px-6">
+                      <div className="flex flex-wrap gap-2 max-w-xs">
+                        {job.requirements?.slice(0, 3).map((req, index) => {
+                          // 페르소나의 보유 기술/자격증과 비교
+                          const personaSkills = [
+                            ...(currentPersona?.skills || []),
+                            ...(currentPersona?.certifications || [])
+                          ].flat();
+                          
+                          // 문자열 파싱 (JSON 또는 쉼표로 구분된 문자열)
+                          const parsePersonaSkills = (skills: any[]): string[] => {
+                            return skills.flatMap(skill => {
+                              if (typeof skill === 'string') {
+                                try {
+                                  const parsed = JSON.parse(skill);
+                                  return Array.isArray(parsed) ? parsed : [skill];
+                                } catch {
+                                  return skill.split(',').map(s => s.trim().replace(/['"]/g, ''));
+                                }
+                              }
+                              return skill;
+                            });
+                          };
+                          
+                          const parsedPersonaSkills = parsePersonaSkills(personaSkills);
+                          const isOwned = parsedPersonaSkills.some(skill => 
+                            skill.toLowerCase().trim() === req.toLowerCase().trim()
+                          );
+                          
+                          return (
+                            <Badge 
+                              key={index} 
+                              variant="outline" 
+                              className={`text-xs px-3 py-1 rounded-full ${
+                                isOwned 
+                                  ? 'text-blue-700 bg-blue-100/70 border-blue-200/70 font-medium' 
+                                  : 'text-gray-600 bg-gray-100 border-gray-200'
+                              }`}
+                            >
+                              {req}
+                            </Badge>
+                          );
+                        })}
                         {job.requirements && job.requirements.length > 3 && (
-                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
+                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
                             +{job.requirements.length - 3}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center py-4 px-6">
-                      <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 rounded-full font-semibold">
-                        -
+                    <TableCell className="text-center py-5 px-6">
+                      <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 rounded-xl font-bold text-sm shadow-md border border-blue-200/50">
+                        {job.recommendation_score ? `${job.recommendation_score}%` : '-'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center py-4 px-6">
+                    <TableCell className="text-center py-5 px-6">
                       <Badge
                         variant={formatDeadline(job.deadline).includes('마감') ? 'destructive' : 'outline'}
-                        className="font-medium"
+                        className="font-semibold px-4 py-2 rounded-full text-sm"
                       >
                         {formatDeadline(job.deadline)}
                       </Badge>

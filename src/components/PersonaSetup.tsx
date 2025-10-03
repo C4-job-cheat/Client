@@ -30,7 +30,7 @@ interface NewPersonaFormData {
   uploadedFile: UploadedFileInfo;
 }
 
-// 직군별 직무 매핑 (요청된 카테고리 반영)
+// jobStandards.json 기반 직군별 직무 매핑
 const jobCategoryMapping = {
   '기획': [
     '경영·사업기획',
@@ -443,16 +443,38 @@ const educationLevels = [
 
 
 const techStacks = [
-  'JavaScript', 'TypeScript', 'Python', 'Java', 'React', 'Vue.js', 'Angular',
-  'Node.js', 'Spring', 'Django', 'HTML/CSS', 'SQL', 'MySQL', 'PostgreSQL',
-  'MongoDB', 'AWS', 'Azure', 'Docker', 'Kubernetes', 'Git', 'Figma', 
-  'Photoshop', 'Illustrator', 'Excel', '기타'
+'JavaScript', 'TypeScript', 'Python', 'Java', 'C', 'C++', 'C#', 'Go', 'Rust', 'Kotlin', 'Swift', 'PHP', 'Ruby', 'R', 'Scala', 'SQL', 'HTML', 'CSS',
+'React', 'Next.js', 'Vue', 'Nuxt', 'Svelte', 'SvelteKit', 'Angular', 'Solid', 'Remix',
+'Node.js', 'Express', 'NestJS', 'FastAPI', 'Flask', 'Django', 'Spring', 'Spring Boot', 'JPA', 'Hibernate',
+'Redux', 'Recoil', 'Zustand', 'MobX', 'Vuex', 'Pinia',
+'Tailwind', 'Sass', 'Less', 'PostCSS', 'MUI', 'AntD', 'Chakra', 'Emotion',
+'Vite', 'Webpack', 'Rollup', 'Babel', 'ESLint', 'Prettier',
+'Jest', 'Vitest', 'Mocha', 'Chai', 'Cypress', 'Playwright', 'Storybook',
+'Git', 'GitHub', 'GitLab', 'Bitbucket', 'GitHub Actions', 'GitLab CI', 'Jenkins',
+'AWS', 'EC2', 'S3', 'RDS', 'Lambda', 'ECS', 'EKS', 'SQS', 'SNS',
+'Azure', 'GCP', 'Vercel', 'Netlify', 'Cloudflare',
+'Docker', 'Podman', 'Kubernetes', 'Helm', 'Terraform', 'Ansible', 'ArgoCD',
+'Nginx', 'Apache', 'Caddy', 'gRPC', 'REST', 'GraphQL', 'WebSocket',
+'MySQL', 'PostgreSQL', 'SQLite', 'MariaDB', 'Oracle', 'MongoDB', 'Redis', 'Memcached',
+'Elasticsearch', 'OpenSearch', 'Kafka', 'RabbitMQ', 'NATS', 'MQTT',
+'Pandas', 'NumPy', 'SciPy', 'sklearn', 'PyTorch', 'TensorFlow', 'Jupyter',
+'Spark', 'Airflow', 'Hadoop', 'Metabase', 'Superset', 'Mixpanel', 'Amplitude',
+'Power BI', 'Tableau', 'Sentry', 'Datadog', 'Prometheus', 'Grafana', 'Loki',
+'Postman', 'Insomnia', 'Figma', 'Photoshop', 'Illustrator', 'Excel', 'Notion', 'Slack',
+'React Native', 'Flutter', 'SwiftUI', 'Electron', 'Tauri',
+'npm', 'pnpm', 'yarn', 'pip', 'Poetry', '기타'
 ];
 
 const certifications = [
-  '정보처리기사', '정보보안기사', 'SQLD', 'ADsP', '컴활1급', '컴활2급',
-  'AWS Certified', 'Google Analytics', 'TOEIC', 'OPIC', 'JLPT', 'HSK',
-  '토익스피킹', '데이터분석전문가', '사회조사분석사', '기타'
+'정보처리기사', '정보보안기사', 'SQLD', 'ADsP', '컴활 1급', '컴활 2급','Google Analytics', 'TOEIC', 'OPIC', 'JLPT N2', 'HSK 5급', '토익스피킹', 
+'데이터분석전문가(ADP)', '사회조사분석사 2급', '리눅스마스터 2급', '네트워크관리사 2급', 'CompTIA A+', 'CompTIA Network+', 
+'CompTIA Security+', 'CISSP', 'CISA', 'CEH', 'PMP', 'PRINCE2 Foundation',
+'ITIL v4 Foundation', 'SAS Base Programming','정보통신기사', '전자계산기조직응용기사', '빅데이터분석기사', '데이터아키텍처전문가(DAP)', 
+'전산회계 1급', '전산세무 2급', '재경관리사', 'FAT 1급', 'TAT 2급', 'ERP정보관리사 회계 1급', '물류관리사', '국제무역사 1급', 
+'유통관리사 2급', '품질경영기사', '산업안전기사', '전기기사', '기계설계기사', '건축기사', '토목기사', '메카트로닉스기사', 
+'생산자동화기사', '정보기기운용기능사', 'GTQ 포토샵 1급', 'GTQi 일러스트 1급', 'MOS Master', 'MOS Expert(Excel)', 
+'컴퓨터그래픽스운용기능사', '한국사능력검정 심화 1급', '한국어교원 3급', '바리스타 2급', '드론 조종자 2급', '수질환경기사', 
+'사회복지사 2급', '청소년상담사 3급', '평생교육사 2급', '위험물산업기사', '소방설비기사(전기)', '기타'
 ];
 
 // 가이드 스텝 데이터
@@ -847,7 +869,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               {/* 보유 기술 스택 */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">보유 기술 스택 (복수 선택 가능)</h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[28rem] max-h-[28rem] overflow-y-auto">
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[28rem] max-h-[28rem] overflow-y-auto scrollbar-hide">
                   <div className="flex flex-wrap gap-2">
                     {techStacks.map((tech) => (
                       <button
@@ -882,7 +904,7 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
               {/* 보유 자격증 */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">보유 자격증 (복수 선택 가능)</h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[28rem] max-h-[28rem] overflow-y-auto">
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[28rem] max-h-[28rem] overflow-y-auto scrollbar-hide">
                   <div className="flex flex-wrap gap-2">
                     {certifications.map((cert) => (
                       <button
@@ -964,16 +986,6 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
                         <p className="text-sm text-green-700">파일이 성공적으로 업로드되었습니다</p>
                       </div>
                     </div>
-
-                    {/* 파일 내용 미리보기 */}
-                    <div className="p-4 bg-gray-50 rounded-lg border">
-                      <p className="text-sm font-medium text-gray-700 mb-2">파일 내용 미리보기</p>
-                      <div className="text-xs text-gray-600 bg-white p-3 rounded max-h-32 overflow-y-auto font-mono border">
-                        {formData.uploadedFile.fileContent.substring(0, 400)}
-                        {formData.uploadedFile.fileContent.length > 400 && '...'}
-                      </div>
-                    </div>
-
                     <div className="flex space-x-3 justify-center">
                       <button
                         onClick={() => {

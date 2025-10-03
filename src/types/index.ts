@@ -200,6 +200,7 @@ export interface ScrapedJob {
   image_url: string;
   company_logo: string;
   job_description: string;
+  recommendation_score: number;
 }
 
 export interface ScrapedJobsResponse {

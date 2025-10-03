@@ -40,51 +40,47 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
   return (
     <div className="min-h-screen">
       {/* Floating Header */}
-      <header className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-5xl px-6">
-        <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-full px-6 py-3 shadow-lg flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <img
-              src="/job_cheat_LOGO.svg"
-              alt="취업인 로고"
-              className="h-8 w-8"
-            />
-            <div className="hidden md:flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('cover-letter-hub')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                자기소개서
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('interview-hub')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                면접 연습하기
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('scraped-jobs')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                공고 모아보기
-              </Button>
-            </div>
+      <header className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-6">
+        <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-lg px-8 py-3 shadow-lg flex items-center justify-between">
+          {/* 좌측 네비게이션 */}
+          <div className="hidden md:flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('cover-letter-hub')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              자기소개서
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('interview-hub')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              면접 연습하기
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('scraped-jobs')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              공고 모아보기
+            </Button>
           </div>
           
-          <div className="flex items-center space-x-3">
-            {/* Persona Toggle */}
-            <PersonaToggle
-              currentPersona={currentPersona}
-              personas={personas}
-              onPersonaSelect={onPersonaSelect}
-              onNavigate={onNavigate}
-              onPersonaDelete={onPersonaDelete}
-            />
+          {/* 우측: Persona Toggle과 사용자 정보 */}
+          <div className="flex items-center space-x-4">
+            <div className="shadow-lg shadow-blue-500/25">
+              <PersonaToggle
+                currentPersona={currentPersona}
+                personas={personas}
+                onPersonaSelect={onPersonaSelect}
+                onNavigate={onNavigate}
+                onPersonaDelete={onPersonaDelete}
+              />
+            </div>
             {firebaseUser ? (
               <div className="flex items-center gap-3">
                 <div className="text-sm text-gray-700">
@@ -214,3 +210,4 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
     </div>
   );
 }
+

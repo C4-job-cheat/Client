@@ -643,7 +643,7 @@ const playRecording = (recordingIndex: number) => {
                       disabled={isQuestionPlaying || recordingState === 'recording'}
                     >
                       <Volume2 className="h-4 w-4 mr-2" />
-                      {isQuestionPlaying ? '재생 중...' : '질문 다시 듣기'}
+                      {isQuestionPlaying ? '재생 중...' : '질문 듣기'}
                     </Button>
                   </div>
                 </div>

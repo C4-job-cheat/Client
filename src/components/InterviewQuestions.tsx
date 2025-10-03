@@ -27,7 +27,7 @@ interface InterviewQuestionsProps {
 
 export function InterviewQuestions({ session, onNavigate, onComplete }: InterviewQuestionsProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(180);
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [answers, setAnswers] = useState<string[]>([]);
@@ -43,7 +43,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
       setAnswers([]);
       setCurrentQuestionIndex(0);
       setCurrentAnswer('');
-      setTimeLeft(60);
+      setTimeLeft(180);
       setTotalElapsedTime(0);
       setIsTimerActive(true);
       return;
@@ -75,7 +75,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
     setIsSubmitting(true);
     setError(null);
 
-    const elapsedSeconds = Math.max(60 - timeLeft, 0);
+    const elapsedSeconds = Math.max(180 - timeLeft, 0);
 
     try {
       const requestData: InterviewAnswerSubmitRequest = {
@@ -157,7 +157,7 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
 
         setCurrentQuestionIndex((prev) => prev + 1);
         setCurrentAnswer('');
-        setTimeLeft(60);
+        setTimeLeft(180);
         setIsTimerActive(true);
       }
     } catch {
@@ -345,11 +345,11 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
                   <h3 className="font-semibold text-gray-700">남은 시간</h3>
                   
                   <div className="flex justify-center">
-                    <CircularTimer timeLeft={timeLeft} totalTime={60} />
+                    <CircularTimer timeLeft={timeLeft} totalTime={180} />
                   </div>
                   
                   <div className="text-sm text-gray-500">
-                    질문당 1분씩 주어집니다
+                    질문당 3분씩 주어집니다
                   </div>
                   
                   {timeLeft <= 10 && (

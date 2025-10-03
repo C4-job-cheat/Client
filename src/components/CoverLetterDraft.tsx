@@ -84,10 +84,14 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
       <main className="px-6 py-8">
         <div className="max-w-6xl mx-auto">
           {/* 2열 Grid: 문서 2fr / 패널 1fr(최소 360px) */}
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] gap-4">
+          <div className={`grid grid-cols-1 gap-4 transition-all duration-300 ${
+            isAnalysisOpen 
+              ? 'lg:grid-cols-[800px_minmax(360px,1fr)]' 
+              : 'lg:grid-cols-1 lg:max-w-4xl lg:mx-auto'
+          }`}>
             
             {/* Left: Cover Letter Document */}
-            <div>
+            <div className="w-full lg:w-[800px]">
               <div className="bg-white border border-gray-300 shadow-sm min-h-[400px] rounded-lg">
                 {/* Document Header */}
                 <div className="border-b border-gray-200 px-8 py-4">
@@ -103,18 +107,19 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
                 <div className="p-8">
                   <div className="leading-relaxed text-gray-800 text-base">
                     {paragraphs.map((paragraph, index) => (
-                      <span
+                      <div
                         key={index}
                         onClick={() => handleParagraphClick(index.toString())}
-                        className={`cursor-pointer transition-all duration-200 ${
+                        className={`cursor-pointer transition-all duration-200 mb-4 ${
                           selectedParagraphId === index.toString()
                             ? 'bg-blue-200/70'
                             : 'hover:bg-yellow-100/50'
                         }`}
                       >
-                        <span>{paragraph.paragraph || paragraph.text}</span>
-                        {index < paragraphs.length - 1 && ' '}
-                      </span>
+                        <div>
+                          {paragraph.paragraph || paragraph.text}
+                        </div>
+                      </div>
                     ))}
                   </div>
 
@@ -127,42 +132,75 @@ export function CoverLetterDraft({ coverLetter, onNavigate }: CoverLetterDraftPr
 
             {/* Right: Content Analysis Panel (스크롤 따라오는 sticky) */}
             <aside
-              className={`hidden lg:block transition-opacity duration-300 ${
-                isAnalysisOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`hidden lg:block transition-all duration-700 ease-in-out ${
+                isAnalysisOpen 
+                  ? 'opacity-100 translate-x-0' 
+                  : 'opacity-0 translate-x-full pointer-events-none'
               }`}
             >
               {/* sticky는 래퍼에 주고, 헤더 높이 반영해서 top 조정 (예: 56px ≈ top-14) */}
-              <div className="sticky top-14 self-start">
-                <Card className="min-h-[200px] max-h-[calc(100vh-4rem)] overflow-auto flex flex-col bg-blue-100/30 border-blue-200">
-                  {/* Close Button */}
-                  <div className="flex justify-end p-2">
+              <div className="sticky top-20 self-start">
+                <Card className="min-h-[400px] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col bg-gradient-to-br from-slate-100 to-blue-100/50 border border-gray-300/70 shadow-xl">
+                  {/* Header with Close Button */}
+                  <div className="flex items-center justify-between p-4 border-b border-gray-300/60 bg-white/90 backdrop-blur-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <h3 className="text-sm font-semibold text-gray-800">AI 분석</h3>
+                    </div>
                     <button
                       onClick={() => setIsAnalysisOpen(false)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
 
                   {selectedParagraph ? (
-                    <div className="flex-1 p-6 pt-1">
-                      <div>
-                        <div className="text-sm text-gray-700 mb-2 font-bold">인사이트</div>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {selectedParagraph.reason || selectedParagraph.explanation}
-                        </p>
+                    <div className="flex-1 p-6 overflow-y-auto">
+                      <div className="space-y-4">
+                        {/* Analysis Header */}
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-gray-800 mb-1">AI 인사이트</h4>
+                            <p className="text-xs text-gray-500">이 문단에 대한 상세 분석</p>
+                          </div>
+                        </div>
+
+                        {/* Analysis Content */}
+                        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-300/60">
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {selectedParagraph.reason || selectedParagraph.explanation}
+                          </p>
+                        </div>
+
+                        {/* Additional Info */}
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                      <FileText className="h-12 w-12 text-gray-300 mb-4" />
-                      <h4 className="font-medium text-gray-700 mb-2">문단을 선택해주세요</h4>
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-4">
+                        <FileText className="h-8 w-8 text-blue-500" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800 mb-2">문단을 선택해주세요</h4>
                       <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
                         문단을 클릭하면<br />
-                        상세 분석을 확인할 수 있습니다.
+                        AI가 분석한 상세 인사이트를<br />
+                        확인할 수 있습니다.
                       </p>
+                      <div className="mt-4 flex space-x-1">
+                        <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
+                        <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                        <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                      </div>
                     </div>
                   )}
                 </Card>

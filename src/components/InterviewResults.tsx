@@ -184,7 +184,7 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
                       </span>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-600">{questionDetail.question_score}/10</div>
+                      <div className="text-2xl font-bold text-blue-600">{questionDetail.question_score}/100</div>
                       <div className="text-sm text-gray-500">점수</div>
                     </div>
                   </div>
@@ -270,30 +270,6 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
                 <p className="text-gray-600">질문 상세 정보를 불러오는 중...</p>
               </div>
             )}
-
-            {/* Suggestions */}
-            <Card className="p-6">
-              <h3 className="font-semibold mb-4 text-blue-700">개선 제안</h3>
-              <div className="space-y-3">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">모범 답변 예시</h4>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    "저는 [구체적 상황]에서 [구체적 행동]을 통해 [구체적 결과]를 달성한 경험이 있습니다.
-                    이 경험을 통해 [학습한 점]을 배웠고, 이는 귀사에서 [연결점]에 도움이 될 것이라 생각합니다."
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">STAR 기법(상황-과제-행동-결과)을 활용해보세요.</p>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-sm text-gray-700">답변 시간을 45초 내외로 조절해보세요.</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
 
             {/* Action Buttons */}
             <div className="flex justify-center space-x-4">
@@ -448,44 +424,48 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
               {session.questions.map((question, index) => {
                 const isExpanded = expandedQuestions.has(question.id);
                 return (
-                  <div key={question.id}>
-                    <Card className="border-2 border-transparent hover:border-blue-200 transition-all">
+                  <div key={question.id} className="mb-6">
+                    <Card className="border-2 border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md">
                       {/* Question Header - Always Visible */}
                       <div
-                        className="p-4 cursor-pointer"
+                        className="p-6 cursor-pointer bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-blue-50/30 transition-all duration-200"
                         onClick={() => toggleQuestionExpansion(question.id)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="text-sm font-medium text-gray-500">
-                                Q{index + 1}.
-                              </span>
-                              <Badge className={QUESTION_TYPE_META[question.type]?.color || 'bg-gray-100 text-gray-700'}>
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-bold text-blue-700">
+                                  {index + 1}
+                                </span>
+                              </div>
+                              <Badge className={`${QUESTION_TYPE_META[question.type]?.color || 'bg-gray-100 text-gray-700'} px-3 py-1`}>
                                 {QUESTION_TYPE_META[question.type]?.label || '일반'}
                               </Badge>
                             </div>
-                            <p className="font-medium mb-2">{question.question}</p>
+                            <p className="font-semibold text-lg mb-3 text-gray-900 leading-relaxed">{question.question}</p>
                             {!isExpanded && (
-                              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg line-clamp-2">
-                                {question.answer || '답변이 입력되지 않았습니다.'}
-                              </p>
+                              <div className="bg-gray-50/80 p-4 rounded-lg border border-gray-200">
+                                <p className="text-sm text-gray-700 leading-relaxed line-clamp-2">
+                                  {question.answer || '답변이 입력되지 않았습니다.'}
+                                </p>
+                              </div>
                             )}
                           </div>
-                          <div className="ml-4 flex items-center space-x-2">
-                            <div className="text-right">
-                              <div className="text-sm text-gray-500">소요 시간</div>
-                              <div className="font-medium">{formatTime(question.timeSpent)}</div>
+                          <div className="ml-6 flex items-center space-x-4">
+                            <div className="text-right bg-white/60 px-3 py-2 rounded-lg border border-gray-200">
+                              <div className="text-xs text-gray-500 mb-1">소요 시간</div>
+                              <div className="font-semibold text-gray-800">{formatTime(question.timeSpent)}</div>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="flex items-center space-x-1"
+                              className="flex items-center space-x-1 hover:bg-blue-100/50 transition-colors"
                             >
                               {isExpanded ? (
-                                <ChevronUp className="h-4 w-4" />
+                                <ChevronUp className="h-5 w-5 text-blue-600" />
                               ) : (
-                                <ChevronDown className="h-4 w-4" />
+                                <ChevronDown className="h-5 w-5 text-blue-600" />
                               )}
                             </Button>
                           </div>
@@ -494,23 +474,26 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
 
                       {/* Expanded Content */}
                       {isExpanded && (
-                        <div className="px-4 pb-4 border-t border-gray-100">
-                          <div className="pt-4 space-y-4">
+                        <div className="px-6 pb-6 border-t border-gray-200 bg-gradient-to-b from-white to-gray-50/30">
+                          <div className="pt-6 space-y-6">
                             {/* Full Answer */}
                             <div>
-                              <h4 className="font-medium mb-2">내 답변</h4>
-                              <div className="bg-gray-50 p-4 rounded-lg">
+                              <h4 className="font-semibold mb-3 text-gray-900 flex items-center">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                내 답변
+                              </h4>
+                              <div className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm">
                                 <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
                                   {question.answer || '답변이 입력되지 않았습니다.'}
                                 </p>
                               </div>
-                              <div className="mt-2 text-sm text-gray-500">
+                              <div className="mt-3 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full inline-block">
                                 답변 길이: {question.answer?.length || 0}자
                               </div>
                             </div>
 
                             {/* Action Button */}
-                            <div className="flex justify-end">
+                            <div className="flex justify-end pt-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -518,10 +501,10 @@ const QUESTION_TYPE_META: Record<InterviewSession['questions'][number]['type'], 
                                   e.stopPropagation();
                                   handleQuestionClick(question);
                                 }}
-                                className="flex items-center space-x-1"
+                                className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 hover:text-blue-800 transition-all duration-200"
                               >
-                                <Eye className="h-3 w-3" />
-                                <span>상세 분석 보기</span>
+                                <Eye className="h-4 w-4" />
+                                <span className="font-medium">상세 분석 보기</span>
                               </Button>
                             </div>
                           </div>

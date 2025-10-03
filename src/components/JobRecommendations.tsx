@@ -53,7 +53,7 @@ function CapabilityRadarChart({
           <RadarChart data={personaCapabilities}>
             <PolarGrid />
             <PolarAngleAxis dataKey="subject" />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 12 }} />
             <Radar
               name="역량 점수"
               dataKey="A"
@@ -81,28 +81,30 @@ function AIAnalysisSummary({
   selectedCapability: string | null;
   onCapabilitySelect: (capability: string) => void;
 }) {
-  // 각 역량별 색상 정의
-  const capabilityColors = [
-    { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: 'text-blue-600', progress: 'bg-blue-500' },
-    { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: 'text-green-600', progress: 'bg-green-500' },
-    { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: 'text-purple-600', progress: 'bg-purple-500' },
-    { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', icon: 'text-orange-600', progress: 'bg-orange-500' },
-    { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', icon: 'text-pink-600', progress: 'bg-pink-500' },
-    { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', icon: 'text-indigo-600', progress: 'bg-indigo-500' },
-    { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700', icon: 'text-teal-600', progress: 'bg-teal-500' },
-    { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-600', progress: 'bg-red-500' }
-  ];
 
-  const capabilities = Object.entries(competencyData).map(([capability, data], index) => ({
+  // 점수에 따른 progress bar 색상 결정 함수
+  const getProgressColor = (score: number) => {
+    if (score >= 70) return 'bg-green-500';
+    if (score >= 40) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const capabilities = Object.entries(competencyData).map(([capability, data]) => ({
     key: capability,
     title: capability.replace('_', ' '),
     score: data.score,
     color: data.score >= 70 ? 'text-green-600' : data.score >= 40 ? 'text-yellow-600' : 'text-red-600',
-    borderColor: data.score >= 70 ? 'border-green-600' : data.score >= 40 ? 'border-yellow-600' : 'border-red-600',
-    iconColor: data.score >= 70 ? 'text-green-600' : data.score >= 40 ? 'text-yellow-600' : 'text-red-600',
     summary: data.score_explanation,
     details: data.key_insights.map(insight => `✓ ${insight}`),
-    themeColor: capabilityColors[index % capabilityColors.length]
+    progressColor: getProgressColor(data.score),
+    // blue 테마로 통일
+    themeColor: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-400', 
+      text: 'text-blue-700',
+      icon: 'text-blue-600',
+      progress: 'bg-blue-500'
+    }
   }));
 
   if (capabilities.length === 0) {
@@ -128,9 +130,9 @@ function AIAnalysisSummary({
             <button
               key={capability.key}
               onClick={() => onCapabilitySelect(capability.key)}
-              className={`w-full text-left p-3 rounded-md border transition-colors ${
+              className={`w-full text-left p-3 rounded-md border-2 transition-colors ${
                 selectedCapability === capability.key
-                  ? `${capability.themeColor.border} ${capability.themeColor.bg} ${capability.themeColor.text}`
+                  ? `${capability.themeColor.border}`
                   : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
               }`}
             >
@@ -142,7 +144,7 @@ function AIAnalysisSummary({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-1">
                 <div 
-                  className={`h-1 rounded-full ${capability.themeColor.progress}`}
+                  className={`h-1 rounded-full ${capability.progressColor}`}
                   style={{ width: `${capability.score}%` }}
                 />
               </div>
@@ -152,27 +154,33 @@ function AIAnalysisSummary({
 
         {/* 우측: 선택된 역량 상세 정보 */}
         <div className="flex-1">
-          <div className={`p-2 rounded-lg border-2 ${selectedData.themeColor.border} bg-white h-full`}>
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center space-x-2">
-                <Target className={`h-3 w-3 ${selectedData.themeColor.icon}`} />
-                <h4 className={`text-sm font-semibold ${selectedData.themeColor.text}`}>{selectedData.title}</h4>
+          <div className={`p-4 rounded-lg border-2 border-gray-200 bg-white h-full flex flex-col justify-between`}>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Target className={`h-4 w-4 ${selectedData.themeColor.icon}`} />
+                  <h4 className={`text-base font-semibold ${selectedData.themeColor.text}`}>{selectedData.title}</h4>
+                </div>
+                <div className={`text-base font-bold ${selectedData.color}`}>
+                  {selectedData.score}점
+                </div>
               </div>
-              <div className={`text-sm font-bold ${selectedData.color}`}>
-                {selectedData.score}점
-              </div>
-            </div>
-            
-            <p className={`text-sm font-semibold text-gray-700 mb-1.5 leading-relaxed`}>
-              {selectedData.summary}
-            </p>
-            
-            <div className="space-y-0.5">
-              {selectedData.details.map((detail, index) => (
-                <p key={index} className={`text-xs ${selectedData.themeColor.text}`}>
-                  {detail}
-                </p>
-              ))}
+              
+              <p className={`text-sm text-gray-700 mb-3 leading-relaxed`}>
+                {selectedData.summary}
+              </p>
+              
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-gray-500 mb-1">주요 인사이트</div>
+                  <div className="space-y-1">
+                    {selectedData.details.map((detail, index) => (
+                      <div key={index} className={`text-xs ${selectedData.themeColor.text} flex items-start space-x-1`}>
+                        <span className="text-blue-400 mt-0.5">•</span>
+                        <span>{detail.replace('✓ ', '')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
             </div>
           </div>
         </div>

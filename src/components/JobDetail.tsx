@@ -271,43 +271,51 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
               {/* Tech Stack Match */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">기술 스택 매치</h2>
-                <p className="text-sm text-gray-600 mb-3">보유 기술과 요구 기술 비교</p>
+                <p className="text-sm text-gray-600 mb-3">공고 요구 기술과 내 보유 기술 비교</p>
                 
-                {/* Owned Skills */}
-                <div className="mb-3">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">보유 기술/자격증</h3>
+                {/* Required Skills */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">필수 기술/자격증</h3>
                   <div className="flex flex-wrap gap-1">
-                    {Array.from(personaSkills).slice(0, 10).map((skill, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-blue-100/50 border border-blue-200 rounded-md hover:bg-blue-100/70 transition-colors"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    {job.requirements.map((skill, index) => {
+                      const isOwned = personaSkills.has(skill);
+                      return (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                            isOwned
+                              ? 'text-blue-700 bg-blue-100/70 border border-blue-200/70 hover:bg-blue-100/80'
+                              : 'text-gray-400 bg-gray-100/50 border border-gray-200/50 cursor-not-allowed opacity-70'
+                          }`}
+                        >
+                          {isOwned && <span className="mr-1">✓</span>}
+                          {skill}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Missing Skills */}
+                {/* Preferred Skills */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">부족한 기술/자격증</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">선호 기술/자격증</h3>
                   <div className="flex flex-wrap gap-1">
-                    {job.requirements.filter(skill => !personaSkills.has(skill)).map((skill, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 transition-colors"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                    {job.preferred.filter(skill => !personaSkills.has(skill)).map((skill, index) => (
-                      <span
-                        key={`preferred-${index}`}
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 transition-colors"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    {job.preferred.map((skill, index) => {
+                      const isOwned = personaSkills.has(skill);
+                      return (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                            isOwned
+                              ? 'text-blue-700 bg-blue-100/70 border border-blue-200/70 hover:bg-blue-100/80'
+                              : 'text-gray-400 bg-gray-100/50 border border-gray-200/50 cursor-not-allowed opacity-70'
+                          }`}
+                        >
+                          {isOwned && <span className="mr-1">✓</span>}
+                          {skill}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
