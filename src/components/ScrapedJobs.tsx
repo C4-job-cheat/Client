@@ -6,22 +6,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { PersonaCardHeader } from './PersonaCardHeader';
 import { apiClient } from '../api/apiClient';
-import type { Page, PersonaResponse, ScrapedJobsResponse, ScrapedJob } from '../types';
+import type { Page, PersonaResponse, ScrapedJobsResponse } from '../types';
 
 interface ScrapedJobsProps {
   currentPersona: PersonaResponse | null;
-  scrapedJobs: Set<string>;
   onNavigate: (page: Page, source?: 'cover-letter' | 'interview' | 'scraped-jobs' | 'general') => void;
   onJobSelect: (jobId: string) => void;
-  onToggleScrap: (jobId: string) => void;
 }
 
 export function ScrapedJobs({ 
   currentPersona, 
-  scrapedJobs, 
   onNavigate, 
-  onJobSelect,
-  onToggleScrap
+  onJobSelect
 }: ScrapedJobsProps) {
   const [scrapedJobsData, setScrapedJobsData] = useState<ScrapedJobsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,16 +38,8 @@ export function ScrapedJobs({
         }
       });
       
-      console.log('🔍 스크랩된 공고 목록:', data);
-      console.log('📊 추천도 데이터 확인:', data.scraped_jobs.map(job => ({
-        job_id: job.job_posting_id,
-        job_title: job.job_title,
-        recommendation_score: job.recommendation_score,
-        deadline: job.deadline
-      })));
       setScrapedJobsData(data);
-    } catch (err) {
-      console.error('스크랩된 공고 목록 조회 실패:', err);
+    } catch {
       setError('스크랩된 공고 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -110,11 +98,7 @@ export function ScrapedJobs({
   }
 
   const formatDeadline = (deadline: string) => {
-    console.log('📅 마감일 포맷팅:', { deadline, type: typeof deadline });
-    
-    // 빈 문자열이나 유효하지 않은 날짜 처리
     if (!deadline || deadline.trim() === '') {
-      console.log('📅 마감일이 비어있음');
       return '마감일 미정';
     }
     
@@ -123,32 +107,14 @@ export function ScrapedJobs({
     
     // 유효하지 않은 날짜 처리
     if (isNaN(date.getTime())) {
-      console.log('📅 유효하지 않은 날짜:', deadline);
       return '마감일 미정';
     }
     
     // 현재 시간 (로컬 시간)
     const now = new Date();
     
-    console.log('🕐 현재 시간 확인:', {
-      now: now.toString(),
-      nowISO: now.toISOString(),
-      deadline: deadline,
-      parsed: date.toString(),
-      parsedISO: date.toISOString()
-    });
-    
-    // 시간 차이 계산 (밀리초)
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    console.log('📅 마감일 계산:', { 
-      original: deadline, 
-      parsed: date.toISOString(),
-      now: now.toISOString(),
-      diffTime, 
-      diffDays 
-    });
     
     if (diffDays < 0) return '마감';
     if (diffDays === 0) return '오늘 마감';
@@ -251,7 +217,7 @@ export function ScrapedJobs({
                           ].flat();
                           
                           // 문자열 파싱 (JSON 또는 쉼표로 구분된 문자열)
-                          const parsePersonaSkills = (skills: any[]): string[] => {
+                          const parsePersonaSkills = (skills: string[]): string[] => {
                             return skills.flatMap(skill => {
                               if (typeof skill === 'string') {
                                 try {

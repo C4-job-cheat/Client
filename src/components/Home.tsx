@@ -16,11 +16,10 @@ interface HomeProps {
   onPersonaSelect: (persona: PersonaResponse) => void;
   onJobSelect: (jobId: string) => void;
   onToggleScrap: (jobId: string) => void;
-  onPersonaDelete?: (personaId: string) => void;
 }
 
 
-export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPersonaSelect, onJobSelect, onToggleScrap, onPersonaDelete }: HomeProps) {
+export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPersonaSelect, onJobSelect, onToggleScrap }: HomeProps) {
   const [showScrapedJobs, setShowScrapedJobs] = useState(false);
   const { firebaseUser, profile, logout } = useAuthContext();
 
@@ -78,7 +77,6 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
                 personas={personas}
                 onPersonaSelect={onPersonaSelect}
                 onNavigate={onNavigate}
-                onPersonaDelete={onPersonaDelete}
               />
             </div>
             {firebaseUser ? (
@@ -90,7 +88,7 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
                   variant="ghost"
                   size="sm"
                   className="text-sm text-gray-600"
-                  onClick={() => logout().catch(console.error)}
+                  onClick={() => logout().catch(() => undefined)}
                 >
                   <LogOut className="mr-1 h-4 w-4" /> 로그아웃
                 </Button>
@@ -210,4 +208,3 @@ export function Home({ currentPersona, personas, scrapedJobs, onNavigate, onPers
     </div>
   );
 }
-

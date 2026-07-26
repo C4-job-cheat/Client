@@ -639,7 +639,6 @@ export function PersonaSetup({ onComplete, onNavigate }: PersonaSetupProps) {
       
       onComplete(persona);
     } catch (err) {
-      console.error('❌ 페르소나 생성 실패:', err);
       toast.error('페르소나 생성 실패', {
         description: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
         duration: 5000,

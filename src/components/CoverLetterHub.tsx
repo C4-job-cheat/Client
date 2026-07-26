@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { Download, Edit3, Plus } from 'lucide-react';
 import { FeatureHub } from './FeatureHub';
 import { apiClient } from '../api/apiClient';
-import type { Page, PersonaResponse, CoverLetter, CoverLetterListResponse, CoverLetterDetailResponse } from '../types';
+import type { Page, PersonaResponse, CoverLetter, CoverLetterListItem, CoverLetterListResponse, CoverLetterDetailResponse } from '../types';
 
 interface CoverLetterHubProps {
   currentPersona: PersonaResponse | null;
@@ -33,10 +33,8 @@ export function CoverLetterHub({ currentPersona, coverLetters, onNavigate, onCov
         }
       });
       
-      console.log('🔍 자기소개서 목록 데이터:', data);
       setCoverLetterListData(data);
-    } catch (err) {
-      console.error('자기소개서 목록 조회 실패:', err);
+    } catch {
       setError('자기소개서 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -63,9 +61,6 @@ export function CoverLetterHub({ currentPersona, coverLetters, onNavigate, onCov
         }
       });
 
-      console.log('🔍 자기소개서 상세 데이터:', data);
-      console.log('🔍 cover_letter 배열:', data.cover_letter);
-
       // 서버 응답을 CoverLetter 형태로 변환
       const detailedCoverLetter: CoverLetter = {
         id: data.id,
@@ -81,8 +76,7 @@ export function CoverLetterHub({ currentPersona, coverLetters, onNavigate, onCov
 
       onCoverLetterSelect(detailedCoverLetter);
       onNavigate('cover-letter-draft');
-    } catch (err) {
-      console.error('자기소개서 상세 조회 실패:', err);
+    } catch {
       // 실패 시 기존 로직 사용
       onCoverLetterSelect(coverLetter);
       onNavigate('cover-letter-draft');
@@ -90,7 +84,7 @@ export function CoverLetterHub({ currentPersona, coverLetters, onNavigate, onCov
   };
 
   // 서버 데이터를 CoverLetter 형태로 변환하는 함수
-  const convertServerDataToCoverLetter = (serverItem: any): CoverLetter => {
+  const convertServerDataToCoverLetter = (serverItem: CoverLetterListItem): CoverLetter => {
     return {
       id: serverItem.id,
       targetCompany: serverItem.company_name,

@@ -74,7 +74,6 @@ async function requestPersonaCreation(payload: PersonaData) {
   }
   if (payload.html_file) {
     formData.append('html_file', payload.html_file);
-    console.log('HTML 파일 추가됨:', payload.html_file.name, payload.html_file.size, 'bytes');
   } else {
     // 서버에서 html_file이 필수인 경우 기본 HTML 템플릿 전송
     const defaultHtml = `
@@ -92,37 +91,15 @@ async function requestPersonaCreation(payload: PersonaData) {
 </html>`;
     const defaultFile = new File([defaultHtml], 'default.html', { type: 'text/html' });
     formData.append('html_file', defaultFile);
-    console.log('기본 HTML 템플릿 전송됨');
-  }
-
-  // FormData 내용 확인
-  console.log('FormData 내용:');
-  for (const [key, value] of formData.entries()) {
-    if (value instanceof File) {
-      console.log(`${key}: File(${value.name}, ${value.size} bytes)`);
-    } else {
-      console.log(`${key}: ${value}`);
-    }
   }
 
   const { data } = await apiClient.post<ServerPersonaResponse>('/api/personas/inputs/', formData);
   
-  console.log('🔍 API 응답 확인:');
-  console.log('서버 응답 데이터:', data);
-  console.log('서버 id:', data?.id);
-  console.log('응답 타입:', typeof data);
-  
   if (!data || !data.id) {
-    console.error('❌ 서버 응답에 id가 없습니다:', data);
     throw new Error('서버에서 페르소나 ID를 반환하지 않았습니다.');
   }
   
-  // 서버 응답을 클라이언트 타입으로 변환
-  const transformedData = transformServerResponse(data);
-  console.log('🔄 변환된 데이터:', transformedData);
-  console.log('변환된 persona_id:', transformedData.persona_id);
-  
-  return transformedData;
+  return transformServerResponse(data);
 }
 
 

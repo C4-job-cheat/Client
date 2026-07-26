@@ -18,8 +18,8 @@ export function Auth({ onNavigate }: AuthProps) {
     try {
       await login()
       onNavigate('home')
-    } catch (error) {
-      console.error('구글 로그인 중 오류', error)
+    } catch {
+      // 로그인 취소 또는 인증 오류는 Firebase UI에서 처리한다.
     }
   }, [login, onNavigate])
 

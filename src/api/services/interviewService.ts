@@ -39,14 +39,11 @@ export async function generateInterviewQuestions(
 export async function submitInterviewAnswer(
   request: InterviewAnswerSubmitRequest,
 ): Promise<NextQuestionResponse | InterviewCompletedResponse> {
-  console.log('🔍 submitInterviewAnswer API 호출:', request);
-  
   const { data } = await apiClient.post<NextQuestionResponse | InterviewCompletedResponse>(
     '/api/interviews/answers/submit-and-next/',
     request,
   )
 
-  console.log('🔍 submitInterviewAnswer API 응답:', data);
   return data
 }
 
@@ -58,15 +55,10 @@ export async function submitInterviewVoiceAnswer(
     interview_session_id: string;
     question_id: string;
     question_number: number;
-    audio_file: File;
+    audio_file: Blob;
     time_taken: number;
   },
 ): Promise<NextQuestionResponse | InterviewCompletedResponse> {
-  console.log('🔍 submitInterviewVoiceAnswer API 호출:', {
-    ...request,
-    audio_file: `File(${request.audio_file.size} bytes)`
-  });
-  
   const formData = new FormData();
   formData.append('persona_id', request.persona_id);
   formData.append('interview_session_id', request.interview_session_id);
@@ -85,7 +77,6 @@ export async function submitInterviewVoiceAnswer(
     },
   )
 
-  console.log('🔍 submitInterviewVoiceAnswer API 응답:', data);
   return data
 }
 

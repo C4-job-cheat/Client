@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { ArrowLeft, Download, FileText } from 'lucide-react';
-import type { Page, CoverLetter, CoverLetterParagraph } from '../types';
+import type { Page, CoverLetter } from '../types';
 
 interface CoverLetterDraftProps {
   coverLetter: CoverLetter | null;

@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { motion } from 'framer-motion';
 import { Sparkles, CheckCircle, TrendingUp, ArrowRight, Star } from 'lucide-react';
-import { toast } from 'sonner';
 import type { Page, PersonaResponse } from '../types';
 
 interface PersonaCompletedProps {
@@ -14,17 +13,12 @@ interface PersonaCompletedProps {
 }
 
 export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: PersonaCompletedProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-
   useEffect(() => {
     // 브라우저 알림만 표시 (토스트 알림 제거)
     const requestNotificationAndShow = async () => {
       try {
         // 브라우저가 알림을 지원하는지 확인
-        if (!('Notification' in window)) {
-          console.log('이 브라우저는 데스크톱 알림을 지원하지 않습니다.');
-          return;
-        }
+        if (!('Notification' in window)) return;
 
         // 알림 권한 상태 확인
         if (Notification.permission === 'default') {
@@ -37,8 +31,8 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
           // 이미 권한이 있으면 바로 알림 표시
           showNotification();
         }
-      } catch (error) {
-        console.error('알림 권한 요청 중 오류:', error);
+      } catch {
+        // 브라우저 알림을 사용할 수 없는 환경에서는 화면 흐름만 유지한다.
       }
     };
 
@@ -278,16 +272,6 @@ export function PersonaCompleted({ persona, onNavigate, isNewUser = false }: Per
       )
     }
   ];
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleSkip = () => {
-    onNavigate('job-recommendations');
-  };
 
   return (
     <div className="min-h-screen bg-white">

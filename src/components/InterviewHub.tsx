@@ -34,10 +34,8 @@ export function InterviewHub({
     try {
       const data = await fetchInterviewHistory(currentPersona.persona_id);
       
-      console.log('🔍 면접 기록 데이터:', data);
       setHistoryData(data);
-    } catch (err) {
-      console.error('면접 기록 조회 실패:', err);
+    } catch {
       setError('면접 기록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
