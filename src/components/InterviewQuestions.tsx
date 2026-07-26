@@ -200,6 +200,20 @@ export function InterviewQuestions({ session, onNavigate, onComplete }: Intervie
     );
   }
 
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-4">현재 면접 질문을 찾을 수 없습니다</p>
+          <Button onClick={() => onNavigate('interview-practice')}>
+            면접 연습으로 돌아가기
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;

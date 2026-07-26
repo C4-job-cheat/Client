@@ -43,10 +43,8 @@ export function CoverLetterSetup({ currentPersona, onNavigate, onComplete }: Cov
         }
       });
       
-      console.log('🔍 자기소개서 페르소나 카드 데이터:', data);
       setPersonaCardData(data);
-    } catch (err) {
-      console.error('페르소나 카드 조회 실패:', err);
+    } catch {
       setError('페르소나 정보를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -132,11 +130,7 @@ export function CoverLetterSetup({ currentPersona, onNavigate, onComplete }: Cov
         style: formData.style
       };
 
-      console.log('🔍 자기소개서 생성 요청:', requestData);
-      
       const { data } = await apiClient.post<CoverLetterCreateResponse>('/api/cover-letters/create/', requestData);
-      
-      console.log('🔍 자기소개서 생성 응답:', data);
 
       // 서버 응답을 CoverLetter 형태로 변환
       const coverLetter: CoverLetter = {
@@ -152,8 +146,7 @@ export function CoverLetterSetup({ currentPersona, onNavigate, onComplete }: Cov
       };
 
       onComplete(coverLetter);
-    } catch (err) {
-      console.error('자기소개서 생성 실패:', err);
+    } catch {
       setError('자기소개서 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsCreating(false);

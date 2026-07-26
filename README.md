@@ -1,155 +1,116 @@
-# Employment System
+# Job-Cheat Client
 
-취업 지원을 위한 AI 기반 플랫폼으로, 페르소나 분석, 채용공고 추천, 자기소개서 생성, 면접 연습 등의 기능을 제공합니다.
+> ChatGPT 대화에서 발견한 나의 역량으로 취업 준비의 다음 단계를 설계하는 웹 클라이언트
 
-## 🚀 주요 기능
+Job-Cheat은 취업 준비 과정에 흩어진 역량 분석, 채용공고 탐색, 자기소개서 작성, 모의면접을 하나의 흐름으로 연결합니다. 이 저장소는 Google 로그인과 Firebase 인증 토큰을 기반으로 API 서버와 통신하고, 사용자가 페르소나를 만들고 맞춤형 취업 준비 기능을 이용하는 React 웹 애플리케이션입니다.
 
-### 1. 페르소나 관리
-- 사용자 프로필 및 역량 분석
-- AI 기반 맞춤형 추천 시스템
-- 개인화된 취업 로드맵 제공
+## ✨ 주요 기능
 
-### 2. 채용공고 추천
-- AI 기반 맞춤형 공고 추천
-- 관심 공고 스크랩 및 관리
-- 상세 공고 정보 제공
+| 기능 | 설명 |
+| --- | --- |
+| Google 로그인 | Google 계정으로 로그인하고 Firebase ID 토큰을 API 요청에 연동합니다. |
+| 페르소나 생성 | 희망 직군·직무, 학력, 기술·자격과 ChatGPT 대화 HTML을 제출해 취업 페르소나를 만듭니다. |
+| 맞춤 공고 추천 | 현재 페르소나를 기준으로 추천 공고 목록과 상세 정보를 확인하고 스크랩을 관리합니다. |
+| AI 자기소개서 | 페르소나 정보를 바탕으로 자기소개서 초안을 만들고, 저장된 문서를 다시 확인합니다. |
+| 모의면접 | 맞춤 질문으로 텍스트 또는 음성 면접을 진행하고 답변별 결과와 피드백을 확인합니다. |
+| 취업 준비 허브 | 홈, 페르소나, 스크랩 공고, 자기소개서, 면접 기록을 화면 흐름 안에서 관리합니다. |
 
-### 3. 자기소개서 생성
-- AI 기반 자기소개서 작성 도구
-- 다양한 템플릿 제공
-- 실시간 편집 및 저장
+## 🧭 설계 방향
 
-### 4. 면접 연습
-- 텍스트 기반 면접 시뮬레이션
-- 음성 면접 연습 기능
-- 면접 결과 분석 및 피드백
+- **인증과 서비스 API의 분리:** Firebase Authentication으로 사용자 인증을 처리하고, Axios 인터셉터가 Firebase ID 토큰을 별도 API 서버 요청에 자동으로 추가합니다.
+- **페르소나 중심 경험:** 선택한 페르소나를 브라우저에 유지하고, 공고·자기소개서·면접 기능이 동일한 페르소나 정보를 기준으로 동작하도록 구성합니다.
 
 ## 🛠 기술 스택
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS + shadcn/ui
-- **State Management**: React Context + Custom Hooks
-- **Backend**: Firebase (Authentication, Firestore)
-- **HTTP Client**: Axios
-- **UI Components**: Radix UI + Lucide React
-- **Animation**: Framer Motion
-- **Forms**: React Hook Form
+| Category | 기술 |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite 7 |
+| Styling & UI | Tailwind CSS, shadcn/ui, Radix UI, Lucide React |
+| State & Form | React Context, Custom Hooks, React Hook Form |
+| Data Visualization & Motion | Recharts, Framer Motion |
+| Auth | Firebase Authentication, GoogleAuthProvider |
+| API | Axios, Firebase ID Token 기반 Bearer 인증 |
+| Testing & Build | ESLint, TypeScript, Vite |
 
 ## 📁 프로젝트 구조
 
-```
-src/
-├── components/           # 페이지 레벨 컴포넌트
-│   ├── ui/              # 재사용 가능한 UI 컴포넌트
-│   └── figma/           # 피그마 디자인 시스템 컴포넌트
-├── context/             # React Context (인증, 상태 관리)
-├── hooks/               # 커스텀 훅
-├── api/                 # API 클라이언트
-├── types/               # TypeScript 타입 정의
-├── styles/              # 전역 스타일
-└── utils/               # 유틸리티 함수
+```text
+Client/
+├── public/                 # 로고와 화면 안내용 정적 자산
+├── src/
+│   ├── api/                # Axios 클라이언트와 도메인별 API 서비스
+│   ├── components/         # 페이지·기능 컴포넌트 및 재사용 UI
+│   ├── context/            # Firebase 인증 상태 컨텍스트
+│   ├── hooks/              # 페르소나·스크랩 상태 훅
+│   ├── styles/             # 전역 스타일
+│   ├── types/              # API·화면 공용 TypeScript 타입
+│   ├── utils/              # 문자열·날짜 유틸리티
+│   ├── App.tsx             # 화면 전환과 상위 상태 관리
+│   └── firebase.ts         # Firebase 앱과 Google 인증 설정
+├── package.json            # 스크립트와 의존성
+├── vite.config.ts          # Vite 설정
+└── tailwind.config.js      # Tailwind 설정
 ```
 
 ## 🚀 시작하기
 
-### 필수 요구사항
-- Node.js 18+ 
-- npm 또는 yarn
+### 요구 사항
 
-### 설치 및 실행
+- Node.js `20.19.0` 이상 또는 `22.12.0` 이상
+- npm
+- Google 로그인이 활성화된 Firebase 프로젝트
+- Job-Cheat API 서버 주소
 
-1. **의존성 설치**
-   ```bash
-   npm install
-   ```
+### 1. 저장소 내려받기
 
-2. **개발 서버 실행**
-   ```bash
-   npm run dev
-   ```
-
-3. **빌드**
-   ```bash
-   npm run build
-   ```
-
-4. **미리보기**
-   ```bash
-   npm run preview
-   ```
-
-5. **린팅**
-   ```bash
-   npm run lint
-   ```
-
-## 🔧 환경 설정
-
-### Firebase 설정
-1. Firebase 프로젝트 생성
-2. Authentication 설정 (이메일/비밀번호)
-3. Firestore 데이터베이스 생성
-4. 환경 변수 설정:
-
-```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+```bash
+git clone https://github.com/C4-job-cheat/Client.git
+cd Client
 ```
 
-## 📱 주요 페이지
+### 2. 설정하기
 
-- **홈**: 메인 대시보드
-- **페르소나 설정**: 사용자 프로필 및 역량 분석
-- **채용공고 추천**: AI 기반 맞춤형 공고 추천
-- **자기소개서 허브**: 자기소개서 관리 및 생성
-- **면접 허브**: 면접 연습 및 결과 분석
-- **스크랩된 공고**: 관심 공고 관리
+예제 파일을 복사해 `.env.local`을 만들고 Firebase 웹 앱 설정과 API 서버 주소를 입력합니다. 실제 키나 인증 정보는 저장소에 커밋하지 않습니다.
 
-## 🎨 디자인 시스템
+```bash
+cp .env.example .env.local
+```
 
-- **컴포넌트**: shadcn/ui 기반
-- **스타일링**: Tailwind CSS
-- **아이콘**: Lucide React
-- **애니메이션**: Framer Motion
+```env
+VITE_API_BASE=http://localhost:8000
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+```
+
+Firebase 웹 설정값은 브라우저에 전달되므로 비밀값으로 취급하지 않습니다. 대신 Firebase Console의 Authorized Domains를 운영 도메인으로 제한하고, API 서버에서는 Firebase ID 토큰을 반드시 검증해야 합니다. 운영 API 주소에는 HTTPS를 사용합니다.
+
+의존성을 설치합니다.
+
+```bash
+npm ci
+```
+
+### 3. 실행하기
+
+```bash
+npm run dev
+```
+
+Vite가 출력한 로컬 개발 서버 주소로 접속합니다. API 서버가 다른 주소에서 실행 중이면 `VITE_API_BASE`를 해당 주소로 설정해야 합니다.
+
+### 4. 검증하기
+
+```bash
+npm run lint
+npm run build
+```
 
 ## 🔒 보안
 
-- Firebase Authentication을 통한 사용자 인증
-- 환경 변수를 통한 민감한 정보 관리
-- HTTPS 통신 보장
-
-## 📝 개발 가이드
-
-### 코딩 스타일
-- ESLint 설정 준수
-- TypeScript strict 모드 사용
-- 함수형 컴포넌트 사용
-- 커스텀 훅을 통한 로직 분리
-
-### 커밋 컨벤션
-```
-feat: 새로운 기능 추가
-fix: 버그 수정
-docs: 문서 수정
-style: 코드 포맷팅
-refactor: 코드 리팩토링
-test: 테스트 추가
-chore: 빌드 과정 또는 보조 도구 변경
-```
-
-## 🤝 기여하기
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+환경변수·인증서·서비스 계정 파일·사용자 대화 원문은 커밋하지 않습니다. 취약점 제보 절차와 공개 전환 점검 항목은 [SECURITY.md](SECURITY.md)를 참고하세요.
 
 ## 📄 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
-
+이 프로젝트는 [MIT License](LICENSE)를 따릅니다.

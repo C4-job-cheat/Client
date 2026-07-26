@@ -189,10 +189,8 @@ export default function App() {
         return (
           <ScrapedJobs
             currentPersona={currentPersona}
-            scrapedJobs={getCurrentPersonaScrapedJobs()}
             onNavigate={navigateTo}
             onJobSelect={handleJobSelect}
-            onToggleScrap={handleToggleScrap}
           />
         );
       case "cover-letter-hub":

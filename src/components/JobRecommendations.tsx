@@ -60,7 +60,16 @@ function CapabilityRadarChart({
               stroke="#3B82F6"
               fill="#3B82F6"
               fillOpacity={0.3}
-              onClick={(data: any) => onCapabilityClick(data.subject)}
+              onClick={(data: unknown) => {
+                if (
+                  typeof data === 'object' &&
+                  data !== null &&
+                  'subject' in data &&
+                  typeof data.subject === 'string'
+                ) {
+                  onCapabilityClick(data.subject);
+                }
+              }}
               className="cursor-pointer"
             />
             <RechartsTooltip />
@@ -235,18 +244,8 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
         }
       });
       
-      // company_logo 디버깅을 위한 로그만 유지
-      if (data?.recommendations && data.recommendations.length > 0) {
-        console.log('🔍 첫 번째 공고의 company_logo:', data.recommendations[0].company_logo);
-        console.log('🔍 배경 이미지 적용 확인:', {
-          hasCompanyLogo: !!data.recommendations[0].company_logo,
-          logoUrl: data.recommendations[0].company_logo
-        });
-      }
-      
       setRecommendationData(data);
-    } catch (err: any) {
-      console.error('❌ 추천 공고 조회 실패:', err);
+    } catch {
       setError('추천 공고를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -388,13 +387,6 @@ export function JobRecommendations({ currentPersona, scrapedJobs, onNavigate, on
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {(recommendationData.recommendations || []).map((job) => {
-                  // 배경 이미지 디버깅
-                  console.log(`🎨 공고 ${job.job_posting_id} 배경 이미지 설정:`, {
-                    company_logo: job.company_logo,
-                    hasLogo: !!job.company_logo,
-                    backgroundStyle: job.company_logo ? `url(${job.company_logo})` : 'none'
-                  });
-                  
                   return (
                   <div
                     key={job.job_posting_id}

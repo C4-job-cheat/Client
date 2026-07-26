@@ -46,28 +46,10 @@ async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
     const { data } = await apiClient.post<UserProfile>('/api/auth/verify/')
     return data
-  } catch (error) {
-    console.error('사용자 프로필을 가져오지 못했습니다.', error)
+  } catch {
     return null
   }
 }
-
-// 토큰 설정은 apiClient 인터셉터에서 처리하므로 제거
-// function setDefaultAuthToken(user: User | null) {
-//   if (!user) {
-//     delete apiClient.defaults.headers.common.Authorization
-//     return
-//   }
-
-//   user
-//     .getIdToken()
-//     .then((token) => {
-//       apiClient.defaults.headers.common.Authorization = `Bearer ${token}`
-//     })
-//     .catch((error) => {
-//       console.error('Firebase 토큰 설정 실패', error)
-//     })
-// }
 
 interface AuthProviderProps {
   children: ReactNode
@@ -116,9 +98,6 @@ function AuthProvider({ children }: AuthProviderProps) {
     try {
       await signInWithPopup(auth, googleProvider)
       // setDefaultAuthToken과 refreshProfile은 onAuthStateChanged에서 자동 처리됨
-    } catch (error) {
-      console.error('구글 로그인 실패', error)
-      throw error
     } finally {
       setIsProcessing(false)
     }
@@ -129,9 +108,6 @@ function AuthProvider({ children }: AuthProviderProps) {
     try {
       await signOut(auth)
       setProfile(null)
-    } catch (error) {
-      console.error('로그아웃 실패', error)
-      throw error
     } finally {
       setIsProcessing(false)
     }
@@ -161,5 +137,6 @@ function useAuthContext() {
   return context
 }
 
+// Context 훅을 함께 내보내는 구조를 유지한다.
+// eslint-disable-next-line react-refresh/only-export-components
 export { AuthProvider, useAuthContext }
-

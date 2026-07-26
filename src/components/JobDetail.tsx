@@ -36,12 +36,8 @@ export function JobDetail({ jobId, currentPersona, scrapedJobs, onNavigate, onTo
         }
       });
       
-      console.log('🔍 서버 응답 전체 데이터 (JSON):');
-      console.log(JSON.stringify(data, null, 2));
-      
       setJobDetailData(data);
-    } catch (err) {
-      console.error('공고 상세 조회 실패:', err);
+    } catch {
       setError('공고 상세 정보를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);

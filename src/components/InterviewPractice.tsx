@@ -34,10 +34,8 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
     
     try {
       const data = await fetchInterviewPreparation(currentPersona.persona_id);
-      console.log('🔍 면접 준비 데이터:', data);
       setPreparationData(data);
-    } catch (err) {
-      console.error('면접 준비 데이터 조회 실패:', err);
+    } catch {
       setError('면접 준비 데이터를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -103,11 +101,8 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
       use_voice: useVoiceInterview
     };
 
-    console.log('🔍 면접 질문 생성 요청:', requestData);
-
     try {
       const { data } = await apiClient.post<InterviewQuestionGenerateResponse>('/api/interviews/questions/generate/', requestData);
-      console.log('🔍 면접 질문 생성 응답:', data);
 
       // 서버 응답을 InterviewSession 형태로 변환
       const session: InterviewSession = {
@@ -132,30 +127,8 @@ export function InterviewPractice({ currentPersona, onNavigate, onStart }: Inter
 
       // 면접 시작
       onStart(session);
-    } catch (err) {
-      console.error('면접 질문 생성 실패:', err);
-      
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
-        if (axiosError.response?.status === 400) {
-          console.error('🔍 400 에러 상세 정보:', {
-            status: axiosError.response.status,
-            statusText: axiosError.response.statusText,
-            data: axiosError.response.data,
-            requestData: requestData
-          });
-          
-          if (axiosError.response.data?.error) {
-            setError(`입력 데이터 오류: ${axiosError.response.data.error}`);
-          } else {
-            setError('입력 데이터가 유효하지 않습니다. 다시 확인해주세요.');
-          }
-        } else {
-          setError('면접 질문 생성에 실패했습니다. 다시 시도해주세요.');
-        }
-      } else {
-        setError('면접 질문 생성에 실패했습니다. 다시 시도해주세요.');
-      }
+    } catch {
+      setError('면접 질문 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsStarting(false);
     }

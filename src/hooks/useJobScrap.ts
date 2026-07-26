@@ -72,8 +72,7 @@ export function useJobScrap() {
           });
         }
       }
-    } catch (err) {
-      console.error('스크랩 처리 실패:', err);
+    } catch {
       toast.error('스크랩 처리 실패', {
         description: '네트워크 오류가 발생했습니다. 다시 시도해주세요.',
         duration: 3000,
@@ -92,4 +91,3 @@ export function useJobScrap() {
     getScrapedJobs
   };
 }
-

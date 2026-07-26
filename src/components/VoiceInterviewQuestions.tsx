@@ -100,18 +100,6 @@ export function VoiceInterviewQuestions({ session, onNavigate, onComplete }: Voi
 const currentRecordingBlob = recordings[currentQuestionIndex] ?? recordingsRef.current[currentQuestionIndex] ?? null;
 
 
-  // 음성 면접 진행 상태 로그 (질문 변경 시에만 실행)
-  useEffect(() => {
-    if (!sessionState) return;
-
-    console.log('🔍 음성 면접 진행 상태:', {
-      questionNumber: currentQuestionNumber,
-      currentQuestionIndex,
-      progress: Math.round(progress),
-      sessionQuestionsLength: sessionState.questions.length
-    });
-  }, [currentQuestionNumber, sessionState, progress, currentQuestionIndex]);
-
   // 녹음 URL 생성
   useEffect(() => {
     const urls = recordings.map(recording => 
@@ -194,8 +182,7 @@ const playQuestionAndStartRecording = useCallback(async (questionText: string) =
       mediaRecorder.start();
       setRecordingState('recording');
       setIsTimerActive(true);
-    } catch (error) {
-      console.error('마이크 접근 실패:', error);
+    } catch {
       setError('마이크 접근 권한이 필요합니다.');
     }
   };
@@ -226,7 +213,6 @@ const playQuestionAndStartRecording = useCallback(async (questionText: string) =
       audio.onerror = () => {
         questionAudioRef.current = null;
         setIsQuestionPlaying(false);
-        console.error('질문 음성 재생 실패: ', audioUrl);
         setError('질문 음성을 재생할 수 없습니다. 텍스트로 안내합니다.');
         speechSynthesis.cancel();
         speechUtteranceRef.current = null;
@@ -282,8 +268,7 @@ const playQuestionAndStartRecording = useCallback(async (questionText: string) =
     };
 
     speechSynthesis.speak(utterance);
-  } catch (error) {
-    console.error('음성 합성 실패:', error);
+  } catch {
     setError('음성 재생에 실패했습니다.');
   }
 }, [currentQuestion, currentQuestionIndex, isQuestionPlaying, recordingState]);
@@ -475,15 +460,13 @@ const playRecording = (recordingIndex: number) => {
     if (!urlFromState && blob) {
       URL.revokeObjectURL(playbackUrl);
     }
-    console.error('녹음 재생 중 오류가 발생했습니다.');
   };
 
-  audio.play().catch(error => {
+  audio.play().catch(() => {
     setIsPlayingRecording(false);
     if (!urlFromState && blob) {
       URL.revokeObjectURL(playbackUrl);
     }
-    console.error('녹음 재생 실패:', error);
   });
 };
 
@@ -665,7 +648,7 @@ const playRecording = (recordingIndex: number) => {
                           }
                           playQuestionAndStartRecording(currentQuestion.question || questionPrompt);
                         }}
-                        disabled={isQuestionPlaying || recordingState === 'recording'}
+                        disabled={isQuestionPlaying}
                         className="bg-red-600 hover:bg-red-700"
                       >
                         <Mic className="h-4 w-4 mr-2" />
@@ -778,8 +761,6 @@ const playRecording = (recordingIndex: number) => {
                     <CircularTimer
                       timeLeft={timeLeft}
                       totalTime={60}
-                      isActive={isTimerActive}
-                    size={120}
                     />
                   </div>
 
